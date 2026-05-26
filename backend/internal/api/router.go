@@ -65,9 +65,6 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 			protected.GET("/notifications/unread", notifH.UnreadCount)
 			protected.PUT("/notifications/:id/read", notifH.MarkRead)
 
-			// --- WebSocket ---
-			protected.GET("/ws", wsH.Serve)
-
 			// --- File Upload ---
 			protected.POST("/upload", uploadH.Upload)
 			protected.POST("/upload/kyb", uploadH.UploadKYBDoc)
