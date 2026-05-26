@@ -19,6 +19,22 @@ type BookingRequest struct {
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
 }
 
+type BusinessVerification struct {
+	ID                 pgtype.UUID        `json:"id"`
+	UserID             pgtype.UUID        `json:"user_id"`
+	BusinessName       string             `json:"business_name"`
+	TaxID              string             `json:"tax_id"`
+	RegistrationNumber pgtype.Text        `json:"registration_number"`
+	Address            string             `json:"address"`
+	Phone              pgtype.Text        `json:"phone"`
+	Documents          []byte             `json:"documents"`
+	Status             string             `json:"status"`
+	RejectionReason    pgtype.Text        `json:"rejection_reason"`
+	VerifiedAt         pgtype.Timestamptz `json:"verified_at"`
+	CreatedAt          pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt          pgtype.Timestamptz `json:"updated_at"`
+}
+
 type Event struct {
 	ID          pgtype.UUID        `json:"id"`
 	Title       string             `json:"title"`
@@ -31,6 +47,22 @@ type Event struct {
 	Status      string             `json:"status"`
 	CreatedAt   pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type NftTicket struct {
+	ID              pgtype.UUID        `json:"id"`
+	TicketID        pgtype.UUID        `json:"ticket_id"`
+	TokenID         int64              `json:"token_id"`
+	ContractAddress string             `json:"contract_address"`
+	TxHash          pgtype.Text        `json:"tx_hash"`
+	Network         string             `json:"network"`
+	TokenUri        pgtype.Text        `json:"token_uri"`
+	OwnerAddress    string             `json:"owner_address"`
+	IsPoap          bool               `json:"is_poap"`
+	PoapClaimedAt   pgtype.Timestamptz `json:"poap_claimed_at"`
+	Status          string             `json:"status"`
+	CreatedAt       pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt       pgtype.Timestamptz `json:"updated_at"`
 }
 
 type Order struct {
@@ -128,6 +160,7 @@ type Venue struct {
 	Status       string             `json:"status"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+	VerifiedOnly bool               `json:"verified_only"`
 }
 
 type VenueSpec struct {

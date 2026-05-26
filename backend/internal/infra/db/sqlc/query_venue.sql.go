@@ -30,7 +30,22 @@ type CreateVenueParams struct {
 	Status       string      `json:"status"`
 }
 
-func (q *Queries) CreateVenue(ctx context.Context, db DBTX, arg CreateVenueParams) (Venue, error) {
+type CreateVenueRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) CreateVenue(ctx context.Context, db DBTX, arg CreateVenueParams) (CreateVenueRow, error) {
 	row := db.QueryRow(ctx, createVenue,
 		arg.ID,
 		arg.Name,
@@ -43,7 +58,7 @@ func (q *Queries) CreateVenue(ctx context.Context, db DBTX, arg CreateVenueParam
 		arg.OwnerID,
 		arg.Status,
 	)
-	var i Venue
+	var i CreateVenueRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -76,9 +91,24 @@ FROM venues
 WHERE id = $1
 `
 
-func (q *Queries) GetVenue(ctx context.Context, db DBTX, id pgtype.UUID) (Venue, error) {
+type GetVenueRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) GetVenue(ctx context.Context, db DBTX, id pgtype.UUID) (GetVenueRow, error) {
 	row := db.QueryRow(ctx, getVenue, id)
-	var i Venue
+	var i GetVenueRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
@@ -102,15 +132,30 @@ FROM venues
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListVenues(ctx context.Context, db DBTX) ([]Venue, error) {
+type ListVenuesRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListVenues(ctx context.Context, db DBTX) ([]ListVenuesRow, error) {
 	rows, err := db.Query(ctx, listVenues)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Venue{}
+	items := []ListVenuesRow{}
 	for rows.Next() {
-		var i Venue
+		var i ListVenuesRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -142,15 +187,30 @@ WHERE owner_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListVenuesByOwner(ctx context.Context, db DBTX, ownerID pgtype.UUID) ([]Venue, error) {
+type ListVenuesByOwnerRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) ListVenuesByOwner(ctx context.Context, db DBTX, ownerID pgtype.UUID) ([]ListVenuesByOwnerRow, error) {
 	rows, err := db.Query(ctx, listVenuesByOwner, ownerID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Venue{}
+	items := []ListVenuesByOwnerRow{}
 	for rows.Next() {
-		var i Venue
+		var i ListVenuesByOwnerRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Name,
@@ -202,7 +262,22 @@ type UpdateVenueParams struct {
 	Status       string      `json:"status"`
 }
 
-func (q *Queries) UpdateVenue(ctx context.Context, db DBTX, arg UpdateVenueParams) (Venue, error) {
+type UpdateVenueRow struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+func (q *Queries) UpdateVenue(ctx context.Context, db DBTX, arg UpdateVenueParams) (UpdateVenueRow, error) {
 	row := db.QueryRow(ctx, updateVenue,
 		arg.ID,
 		arg.Name,
@@ -214,7 +289,7 @@ func (q *Queries) UpdateVenue(ctx context.Context, db DBTX, arg UpdateVenueParam
 		arg.ContactEmail,
 		arg.Status,
 	)
-	var i Venue
+	var i UpdateVenueRow
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
