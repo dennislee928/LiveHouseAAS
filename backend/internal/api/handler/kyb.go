@@ -71,6 +71,23 @@ func (h *KYBHandler) Submit(c *gin.Context) {
 		return
 	}
 
+	// notify admins
+	ctx := context.Background()
+	if adminIDs := GetAdminUserIDs(ctx, h.pool); len(adminIDs) > 0 {
+		for _, adminID := range adminIDs {
+			CreateNotification(ctx, h.pool, adminID, "kyb_submitted",
+				"新的商家驗證申請", req.BusinessName+" 提交了商家驗證申請", gin.H{
+					"business_name": req.BusinessName,
+					"verification_id": result.ID,
+				})
+			SendToUser(adminID, gin.H{
+				"type": "kyb_submitted",
+				"title": "新的商家驗證申請",
+				"body":  req.BusinessName + " 提交了商家驗證申請",
+			})
+		}
+	}
+
 	c.JSON(http.StatusCreated, result)
 }
 
