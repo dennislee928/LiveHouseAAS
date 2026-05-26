@@ -16,6 +16,98 @@ func NewAdminHandler(pool *pgxpool.Pool) *AdminHandler {
 	return &AdminHandler{pool: pool}
 }
 
+func GetAdminUserIDs(ctx context.Context, pool *pgxpool.Pool) []string {
+	rows, err := pool.Query(ctx, `SELECT id FROM users WHERE role = 'admin'`)
+	if err != nil {
+		return nil
+	}
+	defer rows.Close()
+	var ids []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err == nil {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+func (h *AdminHandler) Broadcast(c *gin.Context) {
+	var req struct {
+		Target string `json:"target" binding:"required,oneof=all venues artists user"`
+		UserID string `json:"user_id"`
+		Title  string `json:"title" binding:"required"`
+		Body   string `json:"body"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if req.Target == "user" && req.UserID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id required when target is user"})
+		return
+	}
+
+	var targetIDs []string
+	ctx := context.Background()
+
+	switch req.Target {
+	case "all":
+		rows, err := h.pool.Query(ctx, `SELECT id FROM users`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id string
+				if err := rows.Scan(&id); err == nil {
+					targetIDs = append(targetIDs, id)
+				}
+			}
+		}
+	case "venues":
+		rows, err := h.pool.Query(ctx, `SELECT id FROM users WHERE role = 'venue'`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id string
+				if err := rows.Scan(&id); err == nil {
+					targetIDs = append(targetIDs, id)
+				}
+			}
+		}
+	case "artists":
+		rows, err := h.pool.Query(ctx, `SELECT id FROM users WHERE role = 'artist'`)
+		if err == nil {
+			defer rows.Close()
+			for rows.Next() {
+				var id string
+				if err := rows.Scan(&id); err == nil {
+					targetIDs = append(targetIDs, id)
+				}
+			}
+		}
+	case "user":
+		targetIDs = []string{req.UserID}
+	}
+
+	sent := 0
+	for _, uid := range targetIDs {
+		CreateNotification(ctx, h.pool, uid, "broadcast", req.Title, req.Body, nil)
+		SendToUser(uid, gin.H{
+			"type":  "broadcast",
+			"title": req.Title,
+			"body":  req.Body,
+		})
+		sent++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":  "broadcast sent",
+		"target":   req.Target,
+		"recipients": sent,
+	})
+}
+
 func (h *AdminHandler) Stats(c *gin.Context) {
 	var totalUsers, totalVenues, totalEvents, totalOrders, totalRevenue int64
 	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM users`).Scan(&totalUsers)
