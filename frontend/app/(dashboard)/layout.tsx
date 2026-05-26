@@ -13,6 +13,18 @@ interface User {
 }
 
 const navItems: Record<string, { label: string; href: string }[]> = {
+  admin: [
+    { label: "儀表板", href: "/dashboard" },
+    { label: "管理後台", href: "/admin" },
+    { label: "使用者管理", href: "/admin/users" },
+    { label: "場館管理", href: "/admin/venues" },
+    { label: "活動管理", href: "/admin/events" },
+    { label: "申請管理", href: "/admin/bookings" },
+    { label: "訂單管理", href: "/admin/orders" },
+    { label: "KYB 審核", href: "/admin/kyb" },
+    { label: "票券驗證", href: "/verify" },
+    { label: "NFT 票券", href: "/nft" },
+  ],
   venue: [
     { label: "儀表板", href: "/dashboard" },
     { label: "場館管理", href: "/venues" },
@@ -33,6 +45,18 @@ const navItems: Record<string, { label: string; href: string }[]> = {
   ],
 };
 
+const roleLabels: Record<string, string> = {
+  admin: "管理員",
+  venue: "場館",
+  artist: "樂團",
+};
+
+const roleColors: Record<string, string> = {
+  admin: "bg-purple-50 text-purple-700",
+  venue: "bg-blue-50 text-blue-700",
+  artist: "bg-green-50 text-green-700",
+};
+
 export default function DashboardLayout({
   children,
 }: {
@@ -43,6 +67,7 @@ export default function DashboardLayout({
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
 
   useEffect(() => {
     const token = getToken();
@@ -60,6 +85,20 @@ export default function DashboardLayout({
       })
       .finally(() => setLoading(false));
   }, [router]);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token || !user) return;
+    api.get<{count: number}>("/api/v1/notifications/unread", token)
+      .then((d) => setNotifCount(d.count))
+      .catch(() => {});
+    const interval = setInterval(() => {
+      api.get<{count: number}>("/api/v1/notifications/unread", token)
+        .then((d) => setNotifCount(d.count))
+        .catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   function handleLogout() {
     removeToken();
@@ -99,13 +138,16 @@ export default function DashboardLayout({
                 <li key={item.href}>
                   <Link
                     href={item.href}
-                    className={`block rounded-md px-3 py-2 text-sm font-medium ${
-                      pathname === item.href
+                    className={`flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium ${
+                      pathname === item.href || (item.href !== "/admin" && pathname.startsWith(item.href + "/"))
                         ? "bg-primary-50 text-primary-700"
                         : "text-gray-600 hover:bg-gray-100"
                     }`}
                   >
-                    {item.label}
+                    <span>{item.label}</span>
+                    {item.href === "/notifications" && notifCount > 0 && (
+                      <span className="rounded-full bg-red-500 px-1.5 py-0.5 text-xs text-white">{notifCount}</span>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -113,8 +155,8 @@ export default function DashboardLayout({
           </nav>
           <div className="hidden items-center gap-2 border-t px-6 py-4 lg:flex lg:flex-col">
             <div className="flex items-center gap-2 self-start">
-              <span className="rounded-full bg-primary-50 px-2 py-0.5 text-xs font-medium text-primary-700">
-                {user.role === "venue" ? "場館" : "樂團"}
+              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${roleColors[user.role] || ""}`}>
+                {roleLabels[user.role] || user.role}
               </span>
             </div>
             <div className="flex w-full items-center justify-between">
