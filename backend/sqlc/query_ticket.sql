@@ -15,7 +15,7 @@ JOIN orders o ON t.order_id = o.id
 WHERE o.user_id = $1
 ORDER BY t.created_at DESC;
 
--- name: CreateTickets :copyfrom
+-- name: CreateTicket :exec
 INSERT INTO tickets (id, order_id, ticket_type_id, event_id, code, qr_secret, status, created_at)
 VALUES ($1, $2, $3, $4, $5, $6, 'active', NOW());
 
