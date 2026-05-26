@@ -16,7 +16,10 @@ export function useWebSocket(handlers: Record<string, MessageHandler>) {
     const token = getToken();
     if (!token) return;
 
-    const ws = new WebSocket(`${WS_BASE}/api/v1/ws?token=${token}`);
+    const ws = new WebSocket(`${WS_BASE}/api/v1/ws`, undefined, undefined, [
+      "Authorization",
+      `Bearer ${token}`,
+    ]);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {

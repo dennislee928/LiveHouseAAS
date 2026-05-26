@@ -24,7 +24,7 @@ type WSClient struct {
 
 type WSHub struct {
 	mu      sync.RWMutex
-	clients map[string][]*WSClient // userID -> connections
+	clients map[string][]*WSClient
 }
 
 var Hub = &WSHub{clients: make(map[string][]*WSClient)}
@@ -39,12 +39,6 @@ type WebSocketHandler struct {
 
 func (h *WebSocketHandler) Serve(c *gin.Context) {
 	userID, _ := c.Get("user_id")
-	// allow token via query param for WebSocket clients
-	if token := c.Query("token"); token != "" {
-		if claims, err := auth.NewJWT("").ValidateToken(token); err == nil {
-			userID = claims.UserID
-		}
-	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("ws upgrade error: %v", err)
