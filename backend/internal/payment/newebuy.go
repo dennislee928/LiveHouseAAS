@@ -2,18 +2,9 @@ package payment
 
 import (
 	"context"
-	"crypto/aes"
-	"crypto/cipher"
-	"encoding/base64"
+	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
-	"fmt"
-	"io"
-	"net/http"
-	"net/url"
-	"sort"
 	"strings"
-	"time"
 )
 
 type NewebPayProvider struct {
@@ -56,7 +47,6 @@ func (p *NewebPayProvider) Pay(ctx context.Context, req *PaymentRequest) (*Payme
 	tradeInfoJSON, _ := json.Marshal(tradeInfo)
 	encrypted := p.encryptAES(string(tradeInfoJSON))
 
-	// Generate SHA256 checksum
 	checkValue := fmt.Sprintf("HashKey=%s&%s&HashIV=%s", p.HashKey, encrypted, p.HashIV)
 	sha256Hash := p.sha256Hex(checkValue)
 
@@ -102,7 +92,6 @@ func (p *NewebPayProvider) decryptAES(ciphertext string) (string, error) {
 	decrypted := make([]byte, len(data))
 	mode.CryptBlocks(decrypted, data)
 
-	// Remove PKCS7 padding
 	padLen := int(decrypted[len(decrypted)-1])
 	return string(decrypted[:len(decrypted)-padLen]), nil
 }
@@ -122,9 +111,9 @@ func (p *NewebPayProvider) sha256Hex(input string) string {
 }
 
 type NewebPayCallback struct {
-	Status    string `json:"Status"`
-	Message   string `json:"Message"`
-	Result    string `json:"Result"`
+	Status     string `json:"Status"`
+	Message    string `json:"Message"`
+	Result     string `json:"Result"`
 	MerchantID string `json:"MerchantID"`
 	TradeInfo  string `json:"TradeInfo"`
 	TradeSha   string `json:"TradeSha"`
@@ -142,7 +131,6 @@ func (p *NewebPayProvider) VerifyCallback(ctx context.Context, providerTxID stri
 func (p *NewebPayProvider) Refund(ctx context.Context, providerTxID string, amount int32) error {
 	timeStamp := time.Now().Unix()
 
-	// Build refund API call
 	postData := url.Values{}
 	postData.Set("MerchantID", p.MerchantID)
 	postData.Set("RespondType", "JSON")
