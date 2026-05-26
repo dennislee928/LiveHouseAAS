@@ -38,7 +38,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	nftSvc := blockchain.NewMockService()
 	nftH := handler.NewNFTHandler(pg.Pool, nftSvc)
 	adminH := handler.NewAdminHandler(pg.Pool)
-	wsH := handler.NewWebSocketHandler(pg.Pool)
+	wsH := handler.NewWebSocketHandler(pg.Pool, jwt)
 	uploadH := handler.NewUploadHandler(pg.Pool, cfg.UploadDir, cfg.MaxUploadSize)
 	seatH := handler.NewSeatMapHandler(pg.Pool)
 	notifH := handler.NewNotificationHandler(pg.Pool)
