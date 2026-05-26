@@ -10,6 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/auth"
 )
 
 var upgrader = websocket.Upgrader{
@@ -29,16 +31,28 @@ type WSHub struct {
 
 var Hub = &WSHub{clients: make(map[string][]*WSClient)}
 
-func NewWebSocketHandler(pool *pgxpool.Pool) *WebSocketHandler {
-	return &WebSocketHandler{pool: pool}
+func NewWebSocketHandler(pool *pgxpool.Pool, jwt *auth.JWT) *WebSocketHandler {
+	return &WebSocketHandler{pool: pool, jwt: jwt}
 }
 
 type WebSocketHandler struct {
 	pool *pgxpool.Pool
+	jwt  *auth.JWT
 }
 
 func (h *WebSocketHandler) Serve(c *gin.Context) {
-	userID, _ := c.Get("user_id")
+	token := c.Query("token")
+	if token == "" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing token"})
+		return
+	}
+
+	claims, err := h.jwt.ValidateToken(token)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+		return
+	}
+
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Printf("ws upgrade error: %v", err)
@@ -47,7 +61,7 @@ func (h *WebSocketHandler) Serve(c *gin.Context) {
 
 	client := &WSClient{
 		Conn:   conn,
-		UserID: userID.(string),
+		UserID: claims.UserID,
 		Send:   make(chan []byte, 256),
 	}
 
@@ -105,8 +119,6 @@ func SendToUser(userID string, msg interface{}) {
 		}
 	}
 }
-
-// Notification handler for polling
 
 type NotificationHandler struct {
 	pool *pgxpool.Pool
@@ -169,7 +181,6 @@ func (h *NotificationHandler) UnreadCount(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"count": count})
 }
 
-// Helper to create notifications
 func CreateNotification(ctx context.Context, pool *pgxpool.Pool, userID, ntype, title, body string, data map[string]interface{}) {
 	d, _ := json.Marshal(data)
 	pool.Exec(ctx,
