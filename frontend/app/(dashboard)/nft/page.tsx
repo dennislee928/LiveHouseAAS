@@ -33,13 +33,13 @@ export default function NFTPage() {
     if (!token) return;
     try {
       const ticketsData = await api.get<any[]>("/api/v1/tickets", token);
-      const enriched = await Promise.all(
-        ticketsData.map(async (t) => {
+      const enriched: TicketWithNFT[] = await Promise.all(
+        ticketsData.map(async (t: any) => {
           try {
-            const nft = await api.get(`/api/v1/tickets/${t.id}/nft`, token);
-            return { ...t, ...nft };
+            const nft: any = await api.get(`/api/v1/tickets/${t.id}/nft`, token);
+            return Object.assign({}, t, nft);
           } catch {
-            return { ...t, nft_claimed: false };
+            return Object.assign({}, t, { nft_claimed: false });
           }
         })
       );
