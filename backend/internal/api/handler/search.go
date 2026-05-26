@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -36,32 +37,32 @@ func (h *SearchHandler) Events(c *gin.Context) {
 	argIdx := 1
 
 	if q != "" {
-		query += ` AND (e.title ILIKE $` + itoa(argIdx) + ` OR e.description ILIKE $` + itoa(argIdx) + `)`
+		query += fmt.Sprintf(` AND (e.title ILIKE $%d OR e.description ILIKE $%d)`, argIdx, argIdx)
 		args = append(args, "%"+q+"%")
 		argIdx++
 	}
 	if city != "" {
-		query += ` AND v.city = $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND v.city = $%d`, argIdx)
 		args = append(args, city)
 		argIdx++
 	}
 	if venueID != "" {
-		query += ` AND e.venue_id = $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND e.venue_id = $%d`, argIdx)
 		args = append(args, venueID)
 		argIdx++
 	}
 	if dateFrom != "" {
-		query += ` AND e.start_at >= $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND e.start_at >= $%d`, argIdx)
 		args = append(args, dateFrom)
 		argIdx++
 	}
 	if dateTo != "" {
-		query += ` AND e.start_at <= $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND e.start_at <= $%d`, argIdx)
 		args = append(args, dateTo)
 		argIdx++
 	}
 
-	query += ` ORDER BY e.start_at LIMIT $` + itoa(argIdx) + ` OFFSET $` + itoa(argIdx+1)
+	query += fmt.Sprintf(` ORDER BY e.start_at LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := h.pool.Query(context.Background(), query, args...)
@@ -105,22 +106,22 @@ func (h *SearchHandler) Venues(c *gin.Context) {
 	argIdx := 1
 
 	if q != "" {
-		query += ` AND (v.name ILIKE $` + itoa(argIdx) + ` OR v.description ILIKE $` + itoa(argIdx) + ` OR v.city ILIKE $` + itoa(argIdx) + `)`
+		query += fmt.Sprintf(` AND (v.name ILIKE $%d OR v.description ILIKE $%d OR v.city ILIKE $%d)`, argIdx, argIdx, argIdx)
 		args = append(args, "%"+q+"%")
 		argIdx++
 	}
 	if city != "" {
-		query += ` AND v.city = $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND v.city = $%d`, argIdx)
 		args = append(args, city)
 		argIdx++
 	}
 	if minCap != "" {
-		query += ` AND v.capacity >= $` + itoa(argIdx)
+		query += fmt.Sprintf(` AND v.capacity >= $%d`, argIdx)
 		args = append(args, minCap)
 		argIdx++
 	}
 
-	query += ` ORDER BY v.name LIMIT $` + itoa(argIdx) + ` OFFSET $` + itoa(argIdx+1)
+	query += fmt.Sprintf(` ORDER BY v.name LIMIT $%d OFFSET $%d`, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := h.pool.Query(context.Background(), query, args...)
@@ -147,13 +148,4 @@ func (h *SearchHandler) Venues(c *gin.Context) {
 		results = []gin.H{}
 	}
 	c.JSON(http.StatusOK, results)
-}
-
-func itoa(i int) string {
-	return string(rune('0' + i%10)) + func() string {
-		if i >= 10 {
-			return string(rune('0' + i/10))
-		}
-		return ""
-	}()
 }
