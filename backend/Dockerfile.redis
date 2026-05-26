@@ -1,6 +1,9 @@
-FROM redis:7-alpine
+FROM redis:7.2-alpine
 
 USER 999
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD redis-cli ping || exit 1
 
 EXPOSE 6379
 
