@@ -12,17 +12,22 @@ import (
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/config"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/cache"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/db"
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/notification"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/payment"
 )
 
-func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine {
+func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis, notifSvc notification.Service) *gin.Engine {
 	gin.SetMode(cfg.GinMode)
 	router := gin.New()
 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
+
+	middleware.SetCORSOrigin(cfg.CORSOrigin)
 	router.Use(middleware.CORS())
-	router.Use(middleware.RateLimit(100, time.Minute))
+
+	rl := middleware.NewRateLimiter(r)
+	router.Use(rl.Middleware(100, time.Minute))
 
 	router.Static("/uploads", cfg.UploadDir)
 
@@ -46,7 +51,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	notifH := handler.NewNotificationHandler(pg.Pool)
 	analyticsH := handler.NewAnalyticsHandler(pg.Pool)
 	searchH := handler.NewSearchHandler(pg.Pool)
-	userFeaturesH := handler.NewUserFeaturesHandler(pg.Pool)
+	userFeaturesH := handler.NewUserFeaturesHandler(pg.Pool, notifSvc)
 	callbackH := handler.NewCallbackHandler(pg.Pool, payRouter)
 
 	router.GET("/health", handler.HealthCheck)
