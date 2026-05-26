@@ -3,7 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -103,7 +102,6 @@ func (rl *RateLimiter) allow(key string, limit int, window time.Duration) bool {
 }
 
 func (rl *RateLimiter) Middleware(limit int, window time.Duration) gin.HandlerFunc {
-	_ = strconv.Itoa // satisfy unused import in tests
 	return func(c *gin.Context) {
 		key := c.ClientIP()
 		if userID, exists := c.Get("user_id"); exists {
@@ -118,4 +116,9 @@ func (rl *RateLimiter) Middleware(limit int, window time.Duration) gin.HandlerFu
 		}
 		c.Next()
 	}
+}
+
+func RateLimit(limit int, window time.Duration) gin.HandlerFunc {
+	rl := NewRateLimiter(nil)
+	return rl.Middleware(limit, window)
 }
