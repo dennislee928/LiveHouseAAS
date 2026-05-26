@@ -22,10 +22,10 @@ export default function AdminKYBPage() {
 
   async function review(id: string, status: string) {
     const token = getToken();
-    const reason = status === "rejected" ? prompt("請輸入拒絕原因：") : "";
+    const reason = status === "rejected" ? prompt("請輸入拒絕原因：") || "" : "";
     if (status === "rejected" && !reason) return;
     try {
-      await api.put(`/api/v1/admin/kyb/${id}/review`, { status, rejection_reason: reason }, token);
+      await api.put(`/api/v1/admin/kyb/${id}/review`, { status, rejection_reason: reason || undefined }, token);
       load();
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "操作失敗");
