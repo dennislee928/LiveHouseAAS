@@ -2,20 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { getToken, api } from "@/lib/api";
+import { Pagination } from "@/components/Pagination";
 
 interface Venue {
   id: string; name: string; city: string; capacity: number;
-  owner_name: string; status: string; created_at: string;
+  status: string; owner_name: string; created_at: string;
 }
 
 export default function AdminVenuesPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
 
-  function load() {
+  function load(newOffset?: number) {
     const token = getToken();
     if (!token) return;
-    api.get<Venue[]>("/api/v1/admin/venues", token).then(setVenues).finally(() => setLoading(false));
+    const off = newOffset !== undefined ? newOffset : offset;
+    setLoading(true); setError("");
+    api.get<{data: Venue[]; total: number; limit: number; offset: number}>(
+      `/api/v1/admin/venues?limit=${limit}&offset=${off}`, token,
+    )
+      .then((r) => { setVenues(r.data); setTotal(r.total); setOffset(r.offset); })
+      .catch((e) => setError(e instanceof Error ? e.message : "載入失敗"))
+      .finally(() => setLoading(false));
   }
 
   useEffect(load, []);
@@ -31,13 +43,8 @@ export default function AdminVenuesPage() {
     }
   }
 
-  if (loading) return <p className="text-gray-500">載入中...</p>;
-
-  const statusColors: Record<string, string> = {
-    active: "bg-green-50 text-green-700",
-    inactive: "bg-gray-50 text-gray-600",
-    maintenance: "bg-yellow-50 text-yellow-700",
-  };
+  if (loading) return <div className="flex min-h-[40vh] items-center justify-center"><div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div>
@@ -51,11 +58,13 @@ export default function AdminVenuesPage() {
               <th className="px-4 py-3 text-left font-medium text-gray-500">容納人數</th>
               <th className="px-4 py-3 text-left font-medium text-gray-500">擁有者</th>
               <th className="px-4 py-3 text-left font-medium text-gray-500">狀態</th>
-              <th className="px-4 py-3 text-left font-medium text-gray-500">建立時間</th>
               <th className="px-4 py-3 text-left font-medium text-gray-500">操作</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {venues.length === 0 && (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-400">尚無場館</td></tr>
+            )}
             {venues.map((v) => (
               <tr key={v.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-medium">{v.name}</td>
@@ -63,9 +72,11 @@ export default function AdminVenuesPage() {
                 <td className="px-4 py-3">{v.capacity}</td>
                 <td className="px-4 py-3">{v.owner_name}</td>
                 <td className="px-4 py-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[v.status] || ""}`}>{v.status}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    v.status === "active" ? "bg-green-50 text-green-700" :
+                    v.status === "inactive" ? "bg-gray-50 text-gray-600" : "bg-yellow-50 text-yellow-700"
+                  }`}>{v.status}</span>
                 </td>
-                <td className="px-4 py-3 text-gray-500">{new Date(v.created_at).toLocaleDateString("zh-TW")}</td>
                 <td className="px-4 py-3">
                   <select
                     value={v.status}
@@ -82,6 +93,7 @@ export default function AdminVenuesPage() {
           </tbody>
         </table>
       </div>
+      <Pagination total={total} limit={limit} offset={offset} onPage={(o) => load(o)} />
     </div>
   );
 }
