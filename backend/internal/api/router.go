@@ -184,6 +184,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 				admin.GET("/kyb/pending", kybH.ListPending)
 				admin.PUT("/kyb/:id/review", kybH.Review)
 				admin.GET("/notifications", notifH.ListAll)
+				admin.POST("/notifications/broadcast", adminH.Broadcast)
 			}
 		}
 	}
