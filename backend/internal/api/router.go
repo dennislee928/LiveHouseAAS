@@ -64,6 +64,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 
 			// --- Bookings ---
 			protected.GET("/bookings/artist", bookingH.ListByArtist)
+			protected.GET("/bookings/owner", bookingH.ListByOwner)
 			protected.GET("/venues/:venueId/bookings", bookingH.ListByVenue)
 			protected.POST("/bookings", bookingH.Create)
 			protected.PUT("/bookings/:id/status", bookingH.UpdateStatus)
