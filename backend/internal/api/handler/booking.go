@@ -219,6 +219,31 @@ func (h *BookingHandler) UpdateStatus(c *gin.Context) {
 		return
 	}
 
+	// notify artist
+	ctx := context.Background()
+	statusMap := map[string]string{
+		"approved":  "已核准",
+		"rejected":  "已被拒絕",
+		"confirmed": "已確認",
+		"cancelled": "已取消",
+	}
+	statusText := statusMap[string(req.Status)]
+	if statusText == "" {
+		statusText = string(req.Status)
+	}
+	CreateNotification(ctx, h.pool, b.ArtistID, "booking_"+string(req.Status),
+		"演出申請"+statusText, "您的演出申請"+statusText, gin.H{
+			"booking_id": b.ID,
+			"status":     req.Status,
+		})
+	SendToUser(b.ArtistID, gin.H{
+		"type":       "booking_" + string(req.Status),
+		"title":      "演出申請" + statusText,
+		"body":       "您的演出申請" + statusText,
+		"booking_id": b.ID,
+		"status":     req.Status,
+	})
+
 	c.JSON(http.StatusOK, b)
 }
 
