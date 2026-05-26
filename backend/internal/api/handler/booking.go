@@ -199,3 +199,40 @@ func (h *BookingHandler) UpdateStatus(c *gin.Context) {
 
 	c.JSON(http.StatusOK, b)
 }
+
+func (h *BookingHandler) ListByOwner(c *gin.Context) {
+	ownerID, _ := c.Get("user_id")
+
+	rows, err := h.pool.Query(context.Background(),
+		`SELECT br.id, br.slot_id, br.venue_id, br.artist_id, br.message, br.status, br.created_at, br.updated_at,
+		        s.date::text, s.start_time::text, s.end_time::text,
+		        u.name, u.email,
+		        v.name, v.city
+		 FROM booking_requests br
+		 JOIN slots s ON br.slot_id = s.id
+		 JOIN users u ON br.artist_id = u.id
+		 JOIN venues v ON br.venue_id = v.id
+		 WHERE br.venue_id IN (SELECT id FROM venues WHERE owner_id = $1)
+		 ORDER BY br.created_at DESC`, ownerID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list bookings"})
+		return
+	}
+	defer rows.Close()
+
+	var bookings []booking.BookingDetail
+	for rows.Next() {
+		var b booking.BookingDetail
+		if err := rows.Scan(&b.ID, &b.SlotID, &b.VenueID, &b.ArtistID, &b.Message, &b.Status, &b.CreatedAt, &b.UpdatedAt,
+			&b.Date, &b.StartTime, &b.EndTime, &b.ArtistName, &b.ArtistEmail, &b.VenueName, &b.VenueCity); err != nil {
+			continue
+		}
+		bookings = append(bookings, b)
+	}
+
+	if bookings == nil {
+		bookings = []booking.BookingDetail{}
+	}
+
+	c.JSON(http.StatusOK, bookings)
+}
