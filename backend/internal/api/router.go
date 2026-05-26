@@ -44,6 +44,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	notifH := handler.NewNotificationHandler(pg.Pool)
 
 	router.GET("/health", handler.HealthCheck)
+	router.GET("/api/v1/ws", wsH.Serve) // WebSocket with token query param
 
 	v1 := router.Group("/api/v1")
 	{
