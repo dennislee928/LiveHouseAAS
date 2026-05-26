@@ -1,6 +1,9 @@
-FROM nats:alpine
+FROM nats:2.10-alpine
 
 USER 1000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget -qO- http://localhost:8222/healthz || exit 1
 
 EXPOSE 4222 8222
 
