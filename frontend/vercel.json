@@ -4,7 +4,7 @@
   "outputDirectory": ".next",
   "installCommand": "npm ci",
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://your-api.wso2.com",
-    "NEXT_PUBLIC_WS_URL": "wss://your-api.wso2.com"
+    "NEXT_PUBLIC_API_URL": "https://livehouse-api-dev.choreoapps.dev",
+    "NEXT_PUBLIC_WS_URL": "wss://livehouse-api-dev.choreoapps.dev"
   }
 }
