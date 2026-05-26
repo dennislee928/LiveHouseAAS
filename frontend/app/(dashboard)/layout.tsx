@@ -18,7 +18,9 @@ const navItems: Record<string, { label: string; href: string }[]> = {
     { label: "場館管理", href: "/venues" },
     { label: "演出活動", href: "/events" },
     { label: "演出申請", href: "/bookings" },
+    { label: "票券驗證", href: "/verify" },
     { label: "訂單管理", href: "/orders" },
+    { label: "商家驗證", href: "/kyb" },
   ],
   artist: [
     { label: "儀表板", href: "/dashboard" },
@@ -27,6 +29,7 @@ const navItems: Record<string, { label: string; href: string }[]> = {
     { label: "我的申請", href: "/bookings" },
     { label: "我的訂單", href: "/orders" },
     { label: "我的票券", href: "/tickets" },
+    { label: "NFT 票券", href: "/nft" },
   ],
 };
 
