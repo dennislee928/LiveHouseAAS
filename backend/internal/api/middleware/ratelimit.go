@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -14,8 +15,6 @@ import (
 type RateLimiter struct {
 	mu       sync.Mutex
 	requests map[string][]time.Time
-	limit    int
-	window   time.Duration
 	redis    *cache.Redis
 }
 
@@ -36,7 +35,7 @@ func (rl *RateLimiter) cleanup() {
 		for key, times := range rl.requests {
 			var valid []time.Time
 			for _, t := range times {
-				if now.Sub(t) < rl.window {
+				if now.Sub(t) < time.Minute {
 					valid = append(valid, t)
 				}
 			}
@@ -75,32 +74,36 @@ func (rl *RateLimiter) allowInMemory(key string, limit int, window time.Duration
 }
 
 func (rl *RateLimiter) allowRedis(key string, limit int, window time.Duration) bool {
-	pipe := rl.redis.Client.Pipeline()
-	now := time.Now().UnixMilli()
-	windowMs := window.Milliseconds()
-	cutoff := now - windowMs
+	windowSec := int(window.Seconds())
+	if windowSec < 1 {
+		windowSec = 1
+	}
+	ctx := context.Background()
+	redisKey := "rl:" + key
 
-	pipe.ZRemRangeByScore(context.Background(), "ratelimit:"+key, "0", string(rune(cutoff)))
-	pipe.ZAdd(context.Background(), "ratelimit:"+key, redis.Z{Score: float64(now), Member: now})
-	pipe.Expire(context.Background(), "ratelimit:"+key, window)
-	countCmd := pipe.ZCard(context.Background(), "ratelimit:"+key)
-
-	_, err := pipe.Exec(context.Background())
+	count, err := rl.redis.Incr(ctx, redisKey)
 	if err != nil {
 		return rl.allowInMemory(key, limit, window)
 	}
 
-	return countCmd.Val() <= int64(limit)
+	if count == 1 {
+		rl.redis.Expire(ctx, redisKey, time.Duration(windowSec)*time.Second)
+	}
+
+	return count <= int64(limit)
 }
 
 func (rl *RateLimiter) allow(key string, limit int, window time.Duration) bool {
 	if rl.redis != nil && rl.redis.Client != nil {
-		return rl.allowRedis(key, limit, window)
+		if err := rl.redis.Ping(context.Background()); err == nil {
+			return rl.allowRedis(key, limit, window)
+		}
 	}
 	return rl.allowInMemory(key, limit, window)
 }
 
 func (rl *RateLimiter) Middleware(limit int, window time.Duration) gin.HandlerFunc {
+	_ = strconv.Itoa // satisfy unused import in tests
 	return func(c *gin.Context) {
 		key := c.ClientIP()
 		if userID, exists := c.Get("user_id"); exists {
