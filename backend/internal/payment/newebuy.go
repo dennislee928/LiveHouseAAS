@@ -75,10 +75,13 @@ func (p *NewebPayProvider) Pay(ctx context.Context, req *PaymentRequest) (*Payme
 }
 
 func (p *NewebPayProvider) encryptAES(plaintext string) string {
-	key := []byte(p.HashKey)
-	iv := []byte(p.HashIV)
+	key := []byte(p.adjustKey(p.HashKey))
+	iv := []byte(p.adjustIV(p.HashIV))
 
-	block, _ := aes.NewCipher(key)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return ""
+	}
 	padded := pkcs7Pad([]byte(plaintext), aes.BlockSize)
 	ciphertext := make([]byte, len(padded))
 	mode := cipher.NewCBCEncrypter(block, iv)
@@ -88,21 +91,49 @@ func (p *NewebPayProvider) encryptAES(plaintext string) string {
 }
 
 func (p *NewebPayProvider) decryptAES(ciphertext string) (string, error) {
-	key := []byte(p.HashKey)
-	iv := []byte(p.HashIV)
+	key := []byte(p.adjustKey(p.HashKey))
+	iv := []byte(p.adjustIV(p.HashIV))
 
 	data, err := base64.StdEncoding.DecodeString(ciphertext)
 	if err != nil {
 		return "", err
 	}
 
-	block, _ := aes.NewCipher(key)
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return "", err
+	}
 	mode := cipher.NewCBCDecrypter(block, iv)
 	decrypted := make([]byte, len(data))
 	mode.CryptBlocks(decrypted, data)
 
+	if len(decrypted) == 0 {
+		return "", fmt.Errorf("empty decrypted data")
+	}
 	padLen := int(decrypted[len(decrypted)-1])
+	if padLen > len(decrypted) || padLen == 0 {
+		return string(decrypted), nil
+	}
 	return string(decrypted[:len(decrypted)-padLen]), nil
+}
+
+func (p *NewebPayProvider) adjustKey(key string) string {
+	for len(key) < 16 {
+		key += "0"
+	}
+	if len(key) > 32 {
+		key = key[:32]
+	} else if len(key) > 16 {
+		key = key[:16]
+	}
+	return key
+}
+
+func (p *NewebPayProvider) adjustIV(iv string) string {
+	for len(iv) < 16 {
+		iv += "0"
+	}
+	return iv[:16]
 }
 
 func pkcs7Pad(data []byte, blockSize int) []byte {
