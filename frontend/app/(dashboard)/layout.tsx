@@ -16,13 +16,17 @@ const navItems: Record<string, { label: string; href: string }[]> = {
   venue: [
     { label: "儀表板", href: "/dashboard" },
     { label: "場館管理", href: "/venues" },
-    { label: "檔期管理", href: "/dashboard" },
+    { label: "演出活動", href: "/events" },
     { label: "演出申請", href: "/bookings" },
+    { label: "訂單管理", href: "/orders" },
   ],
   artist: [
     { label: "儀表板", href: "/dashboard" },
     { label: "瀏覽場館", href: "/venues" },
+    { label: "即將演出", href: "/events" },
     { label: "我的申請", href: "/bookings" },
+    { label: "我的訂單", href: "/orders" },
+    { label: "我的票券", href: "/tickets" },
   ],
 };
 
