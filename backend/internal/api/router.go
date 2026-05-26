@@ -6,6 +6,7 @@ import (
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/api/handler"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/api/middleware"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/auth"
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/blockchain"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/config"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/cache"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/db"
@@ -26,8 +27,13 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	slotH := handler.NewSlotHandler(pg.Pool)
 	bookingH := handler.NewBookingHandler(pg.Pool)
 	eventH := handler.NewEventHandler(pg.Pool)
+	kybH := handler.NewKYBHandler(pg.Pool)
+	dashH := handler.NewDashboardHandler(pg.Pool)
+	verifyH := handler.NewVerifyHandler(pg.Pool)
 	payRouter := payment.NewRouter()
 	ticketH := handler.NewTicketHandler(pg.Pool, payRouter)
+	nftSvc := blockchain.NewMockService()
+	nftH := handler.NewNFTHandler(pg.Pool, nftSvc)
 
 	router.GET("/health", handler.HealthCheck)
 
@@ -43,6 +49,7 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 		protected.Use(middleware.Auth(jwt))
 		{
 			protected.GET("/me", authH.GetMe)
+			protected.GET("/dashboard/stats", dashH.Stats)
 
 			// --- Venues ---
 			venues := protected.Group("/venues")
@@ -96,6 +103,21 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 			// --- Orders & Tickets ---
 			protected.GET("/orders", ticketH.ListOrders)
 			protected.GET("/tickets", ticketH.ListTickets)
+
+			// --- Ticket Verification ---
+			protected.POST("/tickets/verify", verifyH.Verify)
+			protected.GET("/tickets/lookup", verifyH.Lookup)
+
+			// --- NFT ---
+			protected.POST("/tickets/:ticketId/nft/claim", nftH.Claim)
+			protected.POST("/tickets/:ticketId/nft/poap", nftH.ClaimPOAP)
+			protected.GET("/tickets/:ticketId/nft", nftH.GetStatus)
+
+			// --- KYB ---
+			protected.POST("/kyb", kybH.Submit)
+			protected.GET("/kyb", kybH.GetStatus)
+			protected.GET("/kyb/pending", kybH.ListPending)
+			protected.PUT("/kyb/:id/review", kybH.Review)
 		}
 	}
 
