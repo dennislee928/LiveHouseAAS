@@ -1,6 +1,8 @@
 package api
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/api/handler"
@@ -20,8 +22,8 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
+	router.Use(middleware.RateLimit(100, time.Minute))
 
-	// serve uploaded files
 	router.Static("/uploads", cfg.UploadDir)
 
 	jwt := auth.NewJWT(cfg.JWTSecret)
@@ -42,9 +44,13 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	uploadH := handler.NewUploadHandler(pg.Pool, cfg.UploadDir, cfg.MaxUploadSize)
 	seatH := handler.NewSeatMapHandler(pg.Pool)
 	notifH := handler.NewNotificationHandler(pg.Pool)
+	analyticsH := handler.NewAnalyticsHandler(pg.Pool)
+	searchH := handler.NewSearchHandler(pg.Pool)
+	userFeaturesH := handler.NewUserFeaturesHandler(pg.Pool)
+	callbackH := handler.NewCallbackHandler(pg.Pool, payRouter)
 
 	router.GET("/health", handler.HealthCheck)
-	router.GET("/api/v1/ws", wsH.Serve) // WebSocket with token query param
+	router.GET("/api/v1/ws", wsH.Serve)
 
 	v1 := router.Group("/api/v1")
 	{
@@ -52,13 +58,31 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 		{
 			auth.POST("/register", authH.Register)
 			auth.POST("/login", authH.Login)
+			auth.POST("/forgot-password", userFeaturesH.ForgotPassword)
+			auth.POST("/reset-password", userFeaturesH.ResetPassword)
 		}
+
+		// Public search endpoints (rate limited but no auth)
+		v1.GET("/search/events", searchH.Events)
+		v1.GET("/search/venues", searchH.Venues)
+		v1.GET("/verify-email", userFeaturesH.VerifyEmail)
+
+		// Payment callbacks (no auth, provider calls these)
+		v1.POST("/payments/callback", callbackH.PaymentCallback)
+		v1.POST("/payments/ecpay/notify", callbackH.ECPayNotify)
+		v1.POST("/payments/newebpay/notify", callbackH.NewebPayNotify)
 
 		protected := v1.Group("")
 		protected.Use(middleware.Auth(jwt))
 		{
 			protected.GET("/me", authH.GetMe)
 			protected.GET("/dashboard/stats", dashH.Stats)
+
+			// --- User Features ---
+			protected.PUT("/me/profile", userFeaturesH.UpdateProfile)
+			protected.POST("/me/change-password", userFeaturesH.ChangePassword)
+			protected.POST("/me/avatar", userFeaturesH.UpdateAvatar)
+			protected.POST("/me/verify-email", userFeaturesH.RequestEmailVerification)
 
 			// --- Notifications ---
 			protected.GET("/notifications", notifH.List)
@@ -80,21 +104,17 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 				venues.PUT("/:id", venueH.Update)
 				venues.DELETE("/:id", venueH.Delete)
 
-				// Venue Specs
 				venues.GET("/:id/specs", venueH.ListSpecs)
 				venues.POST("/:id/specs", venueH.CreateSpec)
 				venues.DELETE("/:id/specs/:specId", venueH.DeleteSpec)
 
-				// Slots
 				venues.GET("/:venueId/slots", slotH.List)
 				venues.POST("/:venueId/slots", slotH.Create)
 				venues.POST("/:venueId/slots/batch", slotH.BatchCreate)
 				venues.DELETE("/slots/:id", slotH.Delete)
 
-				// Events by venue
 				venues.GET("/:venueId/events", eventH.ListByVenue)
 
-				// Seat Layout
 				venues.GET("/:venueId/seats", seatH.GetLayout)
 				venues.PUT("/:venueId/seats", seatH.SaveLayout)
 			}
@@ -115,19 +135,17 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 				events.PUT("/:id", eventH.Update)
 				events.POST("/:id/publish", eventH.Publish)
 
-				// Ticket Types
 				events.GET("/:id/ticket-types", eventH.ListTicketTypes)
 				events.POST("/:id/ticket-types", eventH.CreateTicketType)
 
-				// Seat Availability
 				events.GET("/:eventId/seats", seatH.GetSeatAvailability)
 
-				// Purchase
 				events.POST("/:id/purchase", ticketH.Purchase)
 			}
 
 			// --- Orders & Tickets ---
 			protected.GET("/orders", ticketH.ListOrders)
+			protected.POST("/orders/:orderId/refund", callbackH.Refund)
 			protected.GET("/tickets", ticketH.ListTickets)
 
 			// --- Ticket Verification ---
@@ -143,7 +161,15 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 			protected.POST("/kyb", kybH.Submit)
 			protected.GET("/kyb", kybH.GetStatus)
 
-			// --- Admin (protected by admin role) ---
+			// --- Analytics ---
+			protected.GET("/analytics/summary", analyticsH.Summary)
+			protected.GET("/analytics/revenue", analyticsH.RevenueOverTime)
+			protected.GET("/analytics/top-venues", analyticsH.TopVenues)
+			protected.GET("/analytics/top-events", analyticsH.TopEvents)
+			protected.GET("/analytics/booking-trends", analyticsH.BookingTrends)
+			protected.GET("/analytics/venue-performance", analyticsH.VenuePerformance)
+
+			// --- Admin ---
 			admin := protected.Group("/admin")
 			admin.Use(middleware.RoleCheck("admin"))
 			{
