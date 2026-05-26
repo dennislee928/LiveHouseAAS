@@ -1,0 +1,7 @@
+FROM nats:alpine
+
+USER 1000
+
+EXPOSE 4222 8222
+
+CMD ["-js", "-m", "8222"]

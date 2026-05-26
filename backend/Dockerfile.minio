@@ -1,0 +1,7 @@
+FROM minio/minio:latest
+
+USER 1001
+
+EXPOSE 9000 9001
+
+CMD ["server", "/data", "--console-address", ":9001"]
