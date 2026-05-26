@@ -10,6 +10,7 @@ import (
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/config"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/cache"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/db"
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/notification"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/payment"
 )
 
@@ -20,6 +21,9 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	router.Use(gin.Logger())
 	router.Use(gin.Recovery())
 	router.Use(middleware.CORS())
+
+	// serve uploaded files
+	router.Static("/uploads", cfg.UploadDir)
 
 	jwt := auth.NewJWT(cfg.JWTSecret)
 	authH := handler.NewAuthHandler(pg.Pool, jwt)
@@ -34,6 +38,11 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	ticketH := handler.NewTicketHandler(pg.Pool, payRouter)
 	nftSvc := blockchain.NewMockService()
 	nftH := handler.NewNFTHandler(pg.Pool, nftSvc)
+	adminH := handler.NewAdminHandler(pg.Pool)
+	wsH := handler.NewWebSocketHandler(pg.Pool)
+	uploadH := handler.NewUploadHandler(pg.Pool, cfg.UploadDir, cfg.MaxUploadSize)
+	seatH := handler.NewSeatMapHandler(pg.Pool)
+	notifH := handler.NewNotificationHandler(pg.Pool)
 
 	router.GET("/health", handler.HealthCheck)
 
@@ -50,6 +59,19 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 		{
 			protected.GET("/me", authH.GetMe)
 			protected.GET("/dashboard/stats", dashH.Stats)
+
+			// --- Notifications ---
+			protected.GET("/notifications", notifH.List)
+			protected.GET("/notifications/unread", notifH.UnreadCount)
+			protected.PUT("/notifications/:id/read", notifH.MarkRead)
+
+			// --- WebSocket ---
+			protected.GET("/ws", wsH.Serve)
+
+			// --- File Upload ---
+			protected.POST("/upload", uploadH.Upload)
+			protected.POST("/upload/kyb", uploadH.UploadKYBDoc)
+			protected.POST("/events/:id/upload", uploadH.UploadEventImage)
 
 			// --- Venues ---
 			venues := protected.Group("/venues")
@@ -74,6 +96,10 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 
 				// Events by venue
 				venues.GET("/:venueId/events", eventH.ListByVenue)
+
+				// Seat Layout
+				venues.GET("/:venueId/seats", seatH.GetLayout)
+				venues.PUT("/:venueId/seats", seatH.SaveLayout)
 			}
 
 			// --- Bookings ---
@@ -96,6 +122,9 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 				events.GET("/:id/ticket-types", eventH.ListTicketTypes)
 				events.POST("/:id/ticket-types", eventH.CreateTicketType)
 
+				// Seat Availability
+				events.GET("/:eventId/seats", seatH.GetSeatAvailability)
+
 				// Purchase
 				events.POST("/:id/purchase", ticketH.Purchase)
 			}
@@ -116,8 +145,23 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 			// --- KYB ---
 			protected.POST("/kyb", kybH.Submit)
 			protected.GET("/kyb", kybH.GetStatus)
-			protected.GET("/kyb/pending", kybH.ListPending)
-			protected.PUT("/kyb/:id/review", kybH.Review)
+
+			// --- Admin (protected by admin role) ---
+			admin := protected.Group("/admin")
+			admin.Use(middleware.RoleCheck("admin"))
+			{
+				admin.GET("/stats", adminH.Stats)
+				admin.GET("/users", adminH.ListUsers)
+				admin.PUT("/users/:id/role", adminH.UpdateUserRole)
+				admin.GET("/venues", adminH.ListVenues)
+				admin.PUT("/venues/:id/status", adminH.UpdateVenueStatus)
+				admin.GET("/events", adminH.ListEvents)
+				admin.GET("/bookings", adminH.ListBookings)
+				admin.GET("/orders", adminH.ListOrders)
+				admin.GET("/kyb/pending", kybH.ListPending)
+				admin.PUT("/kyb/:id/review", kybH.Review)
+				admin.GET("/notifications", notifH.ListAll)
+			}
 		}
 	}
 
