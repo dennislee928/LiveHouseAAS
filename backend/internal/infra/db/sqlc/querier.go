@@ -11,11 +11,41 @@ import (
 )
 
 type Querier interface {
+	CheckSlotOverlap(ctx context.Context, db DBTX, arg CheckSlotOverlapParams) (int64, error)
+	CreateBooking(ctx context.Context, db DBTX, arg CreateBookingParams) (BookingRequest, error)
+	CreateEvent(ctx context.Context, db DBTX, arg CreateEventParams) (Event, error)
+	CreateSlot(ctx context.Context, db DBTX, arg CreateSlotParams) (Slot, error)
 	CreateUser(ctx context.Context, db DBTX, arg CreateUserParams) (CreateUserRow, error)
+	CreateVenue(ctx context.Context, db DBTX, arg CreateVenueParams) (Venue, error)
+	CreateVenueSpec(ctx context.Context, db DBTX, arg CreateVenueSpecParams) (VenueSpec, error)
+	DeleteSlot(ctx context.Context, db DBTX, id pgtype.UUID) error
 	DeleteUser(ctx context.Context, db DBTX, id pgtype.UUID) error
+	DeleteVenue(ctx context.Context, db DBTX, id pgtype.UUID) error
+	DeleteVenueSpec(ctx context.Context, db DBTX, id pgtype.UUID) error
+	DeleteVenueSpecsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) error
+	GetBooking(ctx context.Context, db DBTX, id pgtype.UUID) (BookingRequest, error)
+	GetEvent(ctx context.Context, db DBTX, id pgtype.UUID) (Event, error)
+	GetSlot(ctx context.Context, db DBTX, id pgtype.UUID) (Slot, error)
 	GetUserByEmail(ctx context.Context, db DBTX, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, db DBTX, id pgtype.UUID) (GetUserByIDRow, error)
+	GetVenue(ctx context.Context, db DBTX, id pgtype.UUID) (Venue, error)
+	GetVenueSpec(ctx context.Context, db DBTX, id pgtype.UUID) (VenueSpec, error)
+	ListAvailableSlotsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]Slot, error)
+	ListBookingsByArtist(ctx context.Context, db DBTX, artistID pgtype.UUID) ([]BookingRequest, error)
+	ListBookingsByStatus(ctx context.Context, db DBTX, status string) ([]BookingRequest, error)
+	ListBookingsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]BookingRequest, error)
+	ListEventsByArtist(ctx context.Context, db DBTX, artistID pgtype.UUID) ([]Event, error)
+	ListEventsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]Event, error)
+	ListSlotsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]Slot, error)
+	ListVenueSpecs(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]VenueSpec, error)
+	ListVenues(ctx context.Context, db DBTX) ([]Venue, error)
+	ListVenuesByOwner(ctx context.Context, db DBTX, ownerID pgtype.UUID) ([]Venue, error)
+	UpdateBookingStatus(ctx context.Context, db DBTX, arg UpdateBookingStatusParams) (BookingRequest, error)
+	UpdateEventStatus(ctx context.Context, db DBTX, arg UpdateEventStatusParams) (Event, error)
+	UpdateSlotStatus(ctx context.Context, db DBTX, arg UpdateSlotStatusParams) (Slot, error)
 	UpdateUser(ctx context.Context, db DBTX, arg UpdateUserParams) error
+	UpdateVenue(ctx context.Context, db DBTX, arg UpdateVenueParams) (Venue, error)
+	UpdateVenueSpec(ctx context.Context, db DBTX, arg UpdateVenueSpecParams) (VenueSpec, error)
 }
 
 var _ Querier = (*Queries)(nil)

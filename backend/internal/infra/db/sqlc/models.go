@@ -8,6 +8,42 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type BookingRequest struct {
+	ID        pgtype.UUID        `json:"id"`
+	SlotID    pgtype.UUID        `json:"slot_id"`
+	VenueID   pgtype.UUID        `json:"venue_id"`
+	ArtistID  pgtype.UUID        `json:"artist_id"`
+	Message   pgtype.Text        `json:"message"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Event struct {
+	ID          pgtype.UUID        `json:"id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	VenueID     pgtype.UUID        `json:"venue_id"`
+	ArtistID    pgtype.UUID        `json:"artist_id"`
+	BookingID   pgtype.UUID        `json:"booking_id"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Slot struct {
+	ID        pgtype.UUID        `json:"id"`
+	VenueID   pgtype.UUID        `json:"venue_id"`
+	Date      pgtype.Date        `json:"date"`
+	StartTime pgtype.Time        `json:"start_time"`
+	EndTime   pgtype.Time        `json:"end_time"`
+	Status    string             `json:"status"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
 type User struct {
 	ID           pgtype.UUID        `json:"id"`
 	Email        string             `json:"email"`
@@ -17,4 +53,31 @@ type User struct {
 	AvatarUrl    pgtype.Text        `json:"avatar_url"`
 	CreatedAt    pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Venue struct {
+	ID           pgtype.UUID        `json:"id"`
+	Name         string             `json:"name"`
+	Description  pgtype.Text        `json:"description"`
+	Address      string             `json:"address"`
+	City         string             `json:"city"`
+	Capacity     int32              `json:"capacity"`
+	ContactPhone pgtype.Text        `json:"contact_phone"`
+	ContactEmail pgtype.Text        `json:"contact_email"`
+	OwnerID      pgtype.UUID        `json:"owner_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
+}
+
+type VenueSpec struct {
+	ID          pgtype.UUID        `json:"id"`
+	VenueID     pgtype.UUID        `json:"venue_id"`
+	Category    string             `json:"category"`
+	Name        string             `json:"name"`
+	Brand       pgtype.Text        `json:"brand"`
+	Quantity    int32              `json:"quantity"`
+	Description pgtype.Text        `json:"description"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
