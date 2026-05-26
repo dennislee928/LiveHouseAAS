@@ -22,6 +22,7 @@ export default function AdminKYBPage() {
 
   async function review(id: string, status: string) {
     const token = getToken();
+    if (!token) return;
     const reason = status === "rejected" ? prompt("請輸入拒絕原因：") || "" : "";
     if (status === "rejected" && !reason) return;
     try {
