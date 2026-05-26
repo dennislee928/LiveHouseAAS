@@ -12,15 +12,4 @@ CREATE TABLE slots (
 CREATE INDEX idx_slots_venue ON slots(venue_id);
 CREATE INDEX idx_slots_date ON slots(date);
 CREATE INDEX idx_slots_status ON slots(status);
-
--- prevent overlapping slots for the same venue
-CREATE EXTENSION IF NOT EXISTS btree_gist;
-CREATE CONSTRAINT EXCLUDE USING gist (
-    venue_id WITH =,
-    daterange(date, date, '[]') WITH &&
-    tsrange(
-        date + start_time,
-        date + end_time,
-        '[]'
-    ) WITH &&
-);
+CREATE UNIQUE INDEX idx_slots_venue_time ON slots(venue_id, date, start_time, end_time);
