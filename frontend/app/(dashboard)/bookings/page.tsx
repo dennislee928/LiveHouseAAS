@@ -38,7 +38,7 @@ export default function BookingsPage() {
 
     const endpoint = user.role === "artist"
       ? "/api/v1/bookings/artist"
-      : `/api/v1/bookings/artist`;
+      : "/api/v1/bookings/owner";
 
     api.get<Booking[]>(endpoint, token)
       .then(setBookings)
