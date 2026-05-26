@@ -1,6 +1,6 @@
 FROM golang:1.25-alpine AS builder
 
-RUN apk add --no-cache git ca-certificates
+RUN apk add --no-cache git=2.47.2-r0 ca-certificates=20241121-r1
 
 WORKDIR /build
 
