@@ -10,29 +10,29 @@ import (
 )
 
 func TestRateLimiter_Allow(t *testing.T) {
-	rl := NewRateLimiter(3, time.Minute)
+	rl := NewRateLimiter(nil)
 
-	if !rl.allow("test-key") {
+	if !rl.allowInMemory("test-key", 3, time.Minute) {
 		t.Error("first request should be allowed")
 	}
-	if !rl.allow("test-key") {
+	if !rl.allowInMemory("test-key", 3, time.Minute) {
 		t.Error("second request should be allowed")
 	}
-	if !rl.allow("test-key") {
+	if !rl.allowInMemory("test-key", 3, time.Minute) {
 		t.Error("third request should be allowed")
 	}
-	if rl.allow("test-key") {
+	if rl.allowInMemory("test-key", 3, time.Minute) {
 		t.Error("fourth request should be rejected")
 	}
 }
 
 func TestRateLimiter_DifferentKeys(t *testing.T) {
-	rl := NewRateLimiter(1, time.Minute)
+	rl := NewRateLimiter(nil)
 
-	if !rl.allow("key-1") {
+	if !rl.allowInMemory("key-1", 1, time.Minute) {
 		t.Error("key-1 first request should be allowed")
 	}
-	if !rl.allow("key-2") {
+	if !rl.allowInMemory("key-2", 1, time.Minute) {
 		t.Error("key-2 first request should be allowed")
 	}
 }
@@ -45,7 +45,6 @@ func TestRateLimitMiddleware(t *testing.T) {
 		c.JSON(http.StatusOK, gin.H{"ok": true})
 	})
 
-	// First two should succeed
 	w1 := httptest.NewRecorder()
 	r.ServeHTTP(w1, httptest.NewRequest("GET", "/test", nil))
 	if w1.Code != http.StatusOK {
@@ -58,7 +57,6 @@ func TestRateLimitMiddleware(t *testing.T) {
 		t.Errorf("expected 200, got %d", w2.Code)
 	}
 
-	// Third should be rate limited
 	w3 := httptest.NewRecorder()
 	r.ServeHTTP(w3, httptest.NewRequest("GET", "/test", nil))
 	if w3.Code != http.StatusTooManyRequests {
