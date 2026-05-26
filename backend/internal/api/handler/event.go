@@ -71,13 +71,13 @@ func (h *EventHandler) ListPublished(c *gin.Context) {
 func (h *EventHandler) ListByVenue(c *gin.Context) {
 	venueID := c.Param("venueId")
 	h.listEvents(c, `SELECT e.id, e.title, e.description, e.venue_id, e.artist_id, COALESCE(e.booking_id, '00000000-0000-0000-0000-000000000000'), e.start_at, e.end_at, e.status, e.created_at, e.updated_at,
-		v.name, u.name FROM events e JOIN venues v ON e.venue_id = v.id JOIN users u ON e.artist_id = u.id WHERE e.venue_id = $1 ORDER BY e.start_at DESC`, venueID)
+		v.name, v.city, u.name FROM events e JOIN venues v ON e.venue_id = v.id JOIN users u ON e.artist_id = u.id WHERE e.venue_id = $1 ORDER BY e.start_at DESC`, venueID)
 }
 
 func (h *EventHandler) ListByArtist(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	h.listEvents(c, `SELECT e.id, e.title, e.description, e.venue_id, e.artist_id, COALESCE(e.booking_id, '00000000-0000-0000-0000-000000000000'), e.start_at, e.end_at, e.status, e.created_at, e.updated_at,
-		v.name, u.name FROM events e JOIN venues v ON e.venue_id = v.id JOIN users u ON e.artist_id = u.id WHERE e.artist_id = $1 OR e.artist_id IN (SELECT id FROM users WHERE id = $1) ORDER BY e.start_at DESC`, userID)
+		v.name, v.city, u.name FROM events e JOIN venues v ON e.venue_id = v.id JOIN users u ON e.artist_id = u.id WHERE e.artist_id = $1 ORDER BY e.start_at DESC`, userID)
 }
 
 func (h *EventHandler) listEvents(c *gin.Context, query string, arg interface{}) {
@@ -92,10 +92,9 @@ func (h *EventHandler) listEvents(c *gin.Context, query string, arg interface{})
 	for rows.Next() {
 		var e event.EventDetail
 		if err := rows.Scan(&e.ID, &e.Title, &e.Description, &e.VenueID, &e.ArtistID, &e.BookingID, &e.StartAt, &e.EndAt, &e.Status, &e.CreatedAt, &e.UpdatedAt,
-			&e.VenueName, &e.ArtistName); err != nil {
+			&e.VenueName, &e.VenueCity, &e.ArtistName); err != nil {
 			continue
 		}
-		e.VenueCity = ""
 		events = append(events, e)
 	}
 	if events == nil {
