@@ -22,6 +22,7 @@ func (h *AnalyticsHandler) RevenueOverTime(c *gin.Context) {
 	period := c.DefaultQuery("period", "daily") // daily, weekly, monthly
 	days := c.DefaultQuery("days", "30")
 
+	var rows pgx.Rows
 	var err error
 
 	switch period {
