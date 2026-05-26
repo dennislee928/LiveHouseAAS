@@ -1,10 +1,42 @@
-FROM minio/minio:RELEASE.2025-09-07T16-13-09Z
+FROM golang:1.24-alpine AS builder
+
+RUN apk add --no-cache git ca-certificates bash
+
+WORKDIR /build
+
+# Clone minio at the last known stable release
+RUN git clone --depth 1 --branch RELEASE.2025-09-07T16-13-09Z \
+    https://github.com/minio/minio.git .
+
+# Upgrade grpc to the version that fixes CVE-2026-33186
+# (Authorization bypass in grpc/authz, fixed in v1.79.3)
+RUN go get google.golang.org/grpc@v1.79.3 && \
+    go mod tidy
+
+# Build only the minio server binary (mc client is a separate project)
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -trimpath \
+    -ldflags="-s -w" \
+    -o /usr/local/bin/minio \
+    ./cmd/minio
+
+# --- Runtime ---
+FROM alpine:3.21
+
+RUN apk add --no-cache ca-certificates curl
+
+RUN adduser -D -u 10001 -g '' miniouser
+
+COPY --from=builder /usr/local/bin/minio /usr/local/bin/minio
+
+RUN mkdir -p /data && chown 10001:10001 /data
 
 USER 10001
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:9000/minio/health/live || exit 1
 
 EXPOSE 9000 9001
 
+ENTRYPOINT ["minio"]
 CMD ["server", "/data", "--console-address", ":9001"]
