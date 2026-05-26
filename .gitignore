@@ -1,2 +1,25 @@
+# Go
+backend/vendor/
+backend/.air.tmp/
+
+# Node
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
 .DS_Store
-scripts/auto_commit.sh
+Thumbs.db
+
+# Env
+.env
+.env.local
+
+# Docker
+docker-data/
