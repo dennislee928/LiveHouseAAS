@@ -5,7 +5,8 @@ on:
     branches: [main]
     paths:
       - "backend/**"
-      - "Dockerfile"
+      - "Dockerfile*"
+      - "docker-compose*.yml"
 
 jobs:
   deploy-backend:
@@ -32,6 +33,18 @@ jobs:
           tags: ${{ secrets.DOCKER_USERNAME }}/livehouseaas-api:latest
 
       - name: Deploy to WSO2
+        env:
+          WSO2_HOST: ${{ secrets.WSO2_HOST }}
+          WSO2_SSH_KEY: ${{ secrets.WSO2_SSH_KEY }}
         run: |
-          echo "Deploy to WSO2 — configure your SSH/deploy steps here"
-          # ssh user@wso2-host "docker pull ... && docker compose up -d"
+          if [ -n "$WSO2_HOST" ] && [ -n "$WSO2_SSH_KEY" ]; then
+            mkdir -p ~/.ssh
+            echo "$WSO2_SSH_KEY" > ~/.ssh/id_rsa
+            chmod 600 ~/.ssh/id_rsa
+            ssh -o StrictHostKeyChecking=no "deploy@$WSO2_HOST" "
+              docker pull ${{ secrets.DOCKER_USERNAME }}/livehouseaas-api:latest
+              docker compose -f /app/docker-compose.prod.yml up -d --no-deps api
+            "
+          else
+            echo "WSO2_HOST or WSO2_SSH_KEY not configured — skipping deploy"
+          fi
