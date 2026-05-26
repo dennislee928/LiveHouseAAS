@@ -29,4 +29,5 @@ type EventDetail struct {
 	Event
 	ArtistName string `json:"artist_name,omitempty"`
 	VenueName  string `json:"venue_name,omitempty"`
+	VenueCity  string `json:"venue_city,omitempty"`
 }
