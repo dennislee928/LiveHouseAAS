@@ -147,6 +147,23 @@ func (h *KYBHandler) Review(c *gin.Context) {
 		return
 	}
 
+	ctx := context.Background()
+	statusText := "已通過"
+	if bizStatus == "rejected" {
+		statusText = "已被拒絕"
+	}
+	CreateNotification(ctx, h.pool, userID, "kyb_"+bizStatus,
+		"商家驗證"+statusText, "您的商家驗證申請"+statusText, gin.H{
+			"status": bizStatus,
+			"reason": req.RejectionReason,
+		})
+	SendToUser(userID, gin.H{
+		"type":   "kyb_" + bizStatus,
+		"title":  "商家驗證" + statusText,
+		"body":   "您的商家驗證申請" + statusText,
+		"reason": req.RejectionReason,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"id": id, "status": bizStatus})
 }
 
