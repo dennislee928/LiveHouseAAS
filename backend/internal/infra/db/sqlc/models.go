@@ -33,6 +33,27 @@ type Event struct {
 	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
 }
 
+type Order struct {
+	ID            pgtype.UUID        `json:"id"`
+	UserID        pgtype.UUID        `json:"user_id"`
+	EventID       pgtype.UUID        `json:"event_id"`
+	TotalAmount   int32              `json:"total_amount"`
+	Status        string             `json:"status"`
+	PaymentMethod pgtype.Text        `json:"payment_method"`
+	PaidAt        pgtype.Timestamptz `json:"paid_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt     pgtype.Timestamptz `json:"updated_at"`
+}
+
+type OrderItem struct {
+	ID           pgtype.UUID `json:"id"`
+	OrderID      pgtype.UUID `json:"order_id"`
+	TicketTypeID pgtype.UUID `json:"ticket_type_id"`
+	Quantity     int32       `json:"quantity"`
+	UnitPrice    int32       `json:"unit_price"`
+	Subtotal     int32       `json:"subtotal"`
+}
+
 type Slot struct {
 	ID        pgtype.UUID        `json:"id"`
 	VenueID   pgtype.UUID        `json:"venue_id"`
@@ -42,6 +63,45 @@ type Slot struct {
 	Status    string             `json:"status"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 	UpdatedAt pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Ticket struct {
+	ID           pgtype.UUID        `json:"id"`
+	OrderID      pgtype.UUID        `json:"order_id"`
+	TicketTypeID pgtype.UUID        `json:"ticket_type_id"`
+	EventID      pgtype.UUID        `json:"event_id"`
+	Code         string             `json:"code"`
+	QrSecret     string             `json:"qr_secret"`
+	Status       string             `json:"status"`
+	UsedAt       pgtype.Timestamptz `json:"used_at"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+}
+
+type TicketType struct {
+	ID          pgtype.UUID        `json:"id"`
+	EventID     pgtype.UUID        `json:"event_id"`
+	Name        string             `json:"name"`
+	Description pgtype.Text        `json:"description"`
+	Price       int32              `json:"price"`
+	Quantity    int32              `json:"quantity"`
+	MaxPerOrder int32              `json:"max_per_order"`
+	SaleStartAt pgtype.Timestamptz `json:"sale_start_at"`
+	SaleEndAt   pgtype.Timestamptz `json:"sale_end_at"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+}
+
+type Transaction struct {
+	ID           pgtype.UUID        `json:"id"`
+	OrderID      pgtype.UUID        `json:"order_id"`
+	Provider     string             `json:"provider"`
+	Amount       int32              `json:"amount"`
+	Fee          pgtype.Int4        `json:"fee"`
+	ProviderTxID pgtype.Text        `json:"provider_tx_id"`
+	Status       string             `json:"status"`
+	CreatedAt    pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt    pgtype.Timestamptz `json:"updated_at"`
 }
 
 type User struct {

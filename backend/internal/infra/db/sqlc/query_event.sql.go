@@ -159,6 +159,101 @@ func (q *Queries) ListEventsByVenue(ctx context.Context, db DBTX, venueID pgtype
 	return items, nil
 }
 
+const listPublishedEvents = `-- name: ListPublishedEvents :many
+SELECT e.id, e.title, e.description, e.venue_id, e.artist_id, e.booking_id, e.start_at, e.end_at, e.status, e.created_at, e.updated_at,
+       v.name AS venue_name, v.city AS venue_city,
+       u.name AS artist_name
+FROM events e
+JOIN venues v ON e.venue_id = v.id
+JOIN users u ON e.artist_id = u.id
+WHERE e.status = 'published' AND e.start_at > NOW()
+ORDER BY e.start_at
+`
+
+type ListPublishedEventsRow struct {
+	ID          pgtype.UUID        `json:"id"`
+	Title       string             `json:"title"`
+	Description pgtype.Text        `json:"description"`
+	VenueID     pgtype.UUID        `json:"venue_id"`
+	ArtistID    pgtype.UUID        `json:"artist_id"`
+	BookingID   pgtype.UUID        `json:"booking_id"`
+	StartAt     pgtype.Timestamptz `json:"start_at"`
+	EndAt       pgtype.Timestamptz `json:"end_at"`
+	Status      string             `json:"status"`
+	CreatedAt   pgtype.Timestamptz `json:"created_at"`
+	UpdatedAt   pgtype.Timestamptz `json:"updated_at"`
+	VenueName   string             `json:"venue_name"`
+	VenueCity   string             `json:"venue_city"`
+	ArtistName  string             `json:"artist_name"`
+}
+
+func (q *Queries) ListPublishedEvents(ctx context.Context, db DBTX) ([]ListPublishedEventsRow, error) {
+	rows, err := db.Query(ctx, listPublishedEvents)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPublishedEventsRow{}
+	for rows.Next() {
+		var i ListPublishedEventsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Description,
+			&i.VenueID,
+			&i.ArtistID,
+			&i.BookingID,
+			&i.StartAt,
+			&i.EndAt,
+			&i.Status,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.VenueName,
+			&i.VenueCity,
+			&i.ArtistName,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateEvent = `-- name: UpdateEvent :one
+UPDATE events
+SET title = $2, description = $3, updated_at = NOW()
+WHERE id = $1
+RETURNING id, title, description, venue_id, artist_id, booking_id, start_at, end_at, status, created_at, updated_at
+`
+
+type UpdateEventParams struct {
+	ID          pgtype.UUID `json:"id"`
+	Title       string      `json:"title"`
+	Description pgtype.Text `json:"description"`
+}
+
+func (q *Queries) UpdateEvent(ctx context.Context, db DBTX, arg UpdateEventParams) (Event, error) {
+	row := db.QueryRow(ctx, updateEvent, arg.ID, arg.Title, arg.Description)
+	var i Event
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Description,
+		&i.VenueID,
+		&i.ArtistID,
+		&i.BookingID,
+		&i.StartAt,
+		&i.EndAt,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateEventStatus = `-- name: UpdateEventStatus :one
 UPDATE events
 SET status = $2, updated_at = NOW()

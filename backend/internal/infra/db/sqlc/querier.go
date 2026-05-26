@@ -14,18 +14,26 @@ type Querier interface {
 	CheckSlotOverlap(ctx context.Context, db DBTX, arg CheckSlotOverlapParams) (int64, error)
 	CreateBooking(ctx context.Context, db DBTX, arg CreateBookingParams) (BookingRequest, error)
 	CreateEvent(ctx context.Context, db DBTX, arg CreateEventParams) (Event, error)
+	CreateOrder(ctx context.Context, db DBTX, arg CreateOrderParams) (Order, error)
 	CreateSlot(ctx context.Context, db DBTX, arg CreateSlotParams) (Slot, error)
+	CreateTicket(ctx context.Context, db DBTX, arg CreateTicketParams) error
+	CreateTicketType(ctx context.Context, db DBTX, arg CreateTicketTypeParams) (TicketType, error)
+	CreateTransaction(ctx context.Context, db DBTX, arg CreateTransactionParams) (Transaction, error)
 	CreateUser(ctx context.Context, db DBTX, arg CreateUserParams) (CreateUserRow, error)
 	CreateVenue(ctx context.Context, db DBTX, arg CreateVenueParams) (Venue, error)
 	CreateVenueSpec(ctx context.Context, db DBTX, arg CreateVenueSpecParams) (VenueSpec, error)
 	DeleteSlot(ctx context.Context, db DBTX, id pgtype.UUID) error
+	DeleteTicketType(ctx context.Context, db DBTX, id pgtype.UUID) error
 	DeleteUser(ctx context.Context, db DBTX, id pgtype.UUID) error
 	DeleteVenue(ctx context.Context, db DBTX, id pgtype.UUID) error
 	DeleteVenueSpec(ctx context.Context, db DBTX, id pgtype.UUID) error
 	DeleteVenueSpecsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) error
 	GetBooking(ctx context.Context, db DBTX, id pgtype.UUID) (BookingRequest, error)
 	GetEvent(ctx context.Context, db DBTX, id pgtype.UUID) (Event, error)
+	GetOrder(ctx context.Context, db DBTX, id pgtype.UUID) (Order, error)
 	GetSlot(ctx context.Context, db DBTX, id pgtype.UUID) (Slot, error)
+	GetTicket(ctx context.Context, db DBTX, id pgtype.UUID) (Ticket, error)
+	GetTicketType(ctx context.Context, db DBTX, id pgtype.UUID) (TicketType, error)
 	GetUserByEmail(ctx context.Context, db DBTX, email string) (GetUserByEmailRow, error)
 	GetUserByID(ctx context.Context, db DBTX, id pgtype.UUID) (GetUserByIDRow, error)
 	GetVenue(ctx context.Context, db DBTX, id pgtype.UUID) (Venue, error)
@@ -36,16 +44,26 @@ type Querier interface {
 	ListBookingsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]BookingRequest, error)
 	ListEventsByArtist(ctx context.Context, db DBTX, artistID pgtype.UUID) ([]Event, error)
 	ListEventsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]Event, error)
+	ListOrdersByUser(ctx context.Context, db DBTX, userID pgtype.UUID) ([]Order, error)
+	ListPublishedEvents(ctx context.Context, db DBTX) ([]ListPublishedEventsRow, error)
 	ListSlotsByVenue(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]Slot, error)
+	ListTicketTypesByEvent(ctx context.Context, db DBTX, eventID pgtype.UUID) ([]TicketType, error)
+	ListTicketsByOrder(ctx context.Context, db DBTX, orderID pgtype.UUID) ([]Ticket, error)
+	ListTicketsByUser(ctx context.Context, db DBTX, userID pgtype.UUID) ([]Ticket, error)
 	ListVenueSpecs(ctx context.Context, db DBTX, venueID pgtype.UUID) ([]VenueSpec, error)
 	ListVenues(ctx context.Context, db DBTX) ([]Venue, error)
 	ListVenuesByOwner(ctx context.Context, db DBTX, ownerID pgtype.UUID) ([]Venue, error)
 	UpdateBookingStatus(ctx context.Context, db DBTX, arg UpdateBookingStatusParams) (BookingRequest, error)
+	UpdateEvent(ctx context.Context, db DBTX, arg UpdateEventParams) (Event, error)
 	UpdateEventStatus(ctx context.Context, db DBTX, arg UpdateEventStatusParams) (Event, error)
+	UpdateOrderStatus(ctx context.Context, db DBTX, arg UpdateOrderStatusParams) (Order, error)
 	UpdateSlotStatus(ctx context.Context, db DBTX, arg UpdateSlotStatusParams) (Slot, error)
+	UpdateTicketType(ctx context.Context, db DBTX, arg UpdateTicketTypeParams) (TicketType, error)
+	UpdateTransactionStatus(ctx context.Context, db DBTX, arg UpdateTransactionStatusParams) (Transaction, error)
 	UpdateUser(ctx context.Context, db DBTX, arg UpdateUserParams) error
 	UpdateVenue(ctx context.Context, db DBTX, arg UpdateVenueParams) (Venue, error)
 	UpdateVenueSpec(ctx context.Context, db DBTX, arg UpdateVenueSpecParams) (VenueSpec, error)
+	UseTicket(ctx context.Context, db DBTX, id pgtype.UUID) (Ticket, error)
 }
 
 var _ Querier = (*Queries)(nil)
