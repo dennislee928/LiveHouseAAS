@@ -10,7 +10,6 @@ import (
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/config"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/cache"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/db"
-	"github.com/dennis-lee/LiveHouseAAS/backend/internal/notification"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/payment"
 )
 
