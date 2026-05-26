@@ -15,6 +15,7 @@ interface User {
 const navItems: Record<string, { label: string; href: string }[]> = {
   admin: [
     { label: "儀表板", href: "/dashboard" },
+    { label: "數據分析", href: "/analytics" },
     { label: "管理後台", href: "/admin" },
     { label: "使用者管理", href: "/admin/users" },
     { label: "場館管理", href: "/admin/venues" },
@@ -27,6 +28,7 @@ const navItems: Record<string, { label: string; href: string }[]> = {
   ],
   venue: [
     { label: "儀表板", href: "/dashboard" },
+    { label: "數據分析", href: "/analytics" },
     { label: "場館管理", href: "/venues" },
     { label: "演出活動", href: "/events" },
     { label: "演出申請", href: "/bookings" },
