@@ -59,6 +59,28 @@ func (h *BookingHandler) Create(c *gin.Context) {
 	h.pool.Exec(context.Background(),
 		`UPDATE slots SET status = 'booked', updated_at = NOW() WHERE id = $1`, req.SlotID)
 
+	// notify venue owner
+	ctx := context.Background()
+	var venueOwnerID string
+	h.pool.QueryRow(ctx,
+		`SELECT owner_id FROM venues WHERE id = $1`, venueID).Scan(&venueOwnerID)
+	if venueOwnerID != "" {
+		CreateNotification(ctx, h.pool, venueOwnerID, "booking_created",
+			"新的演出申請", "您收到了一筆新的演出申請", gin.H{
+				"booking_id": b.ID,
+				"venue_id":   venueID,
+				"date":       slotDate,
+				"start_time": startTime,
+				"end_time":   endTime,
+			})
+		SendToUser(venueOwnerID, gin.H{
+			"type":       "booking_created",
+			"title":      "新的演出申請",
+			"body":       "您收到了一筆新的演出申請",
+			"booking_id": b.ID,
+		})
+	}
+
 	c.JSON(http.StatusCreated, gin.H{
 		"booking": b,
 		"slot": gin.H{
