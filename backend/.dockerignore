@@ -3,3 +3,5 @@
 .env
 .git/
 *.md
+.choreo/
+openapi.yaml

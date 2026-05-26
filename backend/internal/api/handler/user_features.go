@@ -9,14 +9,17 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/notification"
 )
 
 type UserFeaturesHandler struct {
-	pool *pgxpool.Pool
+	pool     *pgxpool.Pool
+	notifSvc notification.Service
 }
 
-func NewUserFeaturesHandler(pool *pgxpool.Pool) *UserFeaturesHandler {
-	return &UserFeaturesHandler{pool: pool}
+func NewUserFeaturesHandler(pool *pgxpool.Pool, notifSvc notification.Service) *UserFeaturesHandler {
+	return &UserFeaturesHandler{pool: pool, notifSvc: notifSvc}
 }
 
 func generateToken() string {
@@ -40,8 +43,9 @@ func (h *UserFeaturesHandler) RequestEmailVerification(c *gin.Context) {
 		return
 	}
 
-	// In production, send email with verification link
 	verifyURL := "/verify-email?token=" + token
+	h.notifSvc.SendEmail(email.(string), "驗證您的 Email", "請點擊以下連結驗證您的 Email：\n\n"+verifyURL)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":    "verification email sent",
 		"verify_url": verifyURL,
@@ -56,21 +60,19 @@ func (h *UserFeaturesHandler) VerifyEmail(c *gin.Context) {
 		return
 	}
 
-	var userID string
+	var userID, email string
 	err := h.pool.QueryRow(context.Background(),
 		`UPDATE users SET updated_at = NOW()
 		 WHERE id = (SELECT user_id FROM user_tokens WHERE token = $1 AND type = 'email_verify' AND expires_at > NOW())
-		 RETURNING id`, token).Scan(&userID)
+		 RETURNING id, email`, token).Scan(&userID, &email)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid or expired token"})
 		return
 	}
 
-	// delete used token
 	h.pool.Exec(context.Background(),
 		`DELETE FROM user_tokens WHERE user_id = $1 AND type = 'email_verify'`, userID)
 
-	// mark email as verified (store flag)
 	h.pool.Exec(context.Background(),
 		`UPDATE users SET avatar_url = COALESCE(avatar_url, '') WHERE id = $1`, userID)
 
@@ -90,7 +92,6 @@ func (h *UserFeaturesHandler) ForgotPassword(c *gin.Context) {
 	err := h.pool.QueryRow(context.Background(),
 		`SELECT id FROM users WHERE email = $1`, req.Email).Scan(&userID)
 	if err != nil {
-		// Don't reveal whether email exists
 		c.JSON(http.StatusOK, gin.H{"message": "if the email exists, a reset link has been sent"})
 		return
 	}
@@ -103,6 +104,8 @@ func (h *UserFeaturesHandler) ForgotPassword(c *gin.Context) {
 		userID, token)
 
 	resetURL := "/reset-password?token=" + token
+	h.notifSvc.SendEmail(req.Email, "重設您的密碼", "請點擊以下連結重設您的密碼（有效期 1 小時）：\n\n"+resetURL)
+
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "if the email exists, a reset link has been sent",
 		"reset_url": resetURL,

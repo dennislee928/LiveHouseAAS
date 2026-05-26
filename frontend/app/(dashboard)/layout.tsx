@@ -1,21 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { getToken, removeToken, api } from "@/lib/api";
+import { useWebSocket } from "@/hooks/useWebSocket";
 
 interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: string;
+  id: string; email: string; name: string; role: string;
 }
 
 const navItems: Record<string, { label: string; href: string }[]> = {
   admin: [
     { label: "儀表板", href: "/dashboard" },
     { label: "數據分析", href: "/analytics" },
+    { label: "通知", href: "/notifications" },
     { label: "管理後台", href: "/admin" },
     { label: "使用者管理", href: "/admin/users" },
     { label: "場館管理", href: "/admin/venues" },
@@ -23,34 +22,40 @@ const navItems: Record<string, { label: string; href: string }[]> = {
     { label: "申請管理", href: "/admin/bookings" },
     { label: "訂單管理", href: "/admin/orders" },
     { label: "KYB 審核", href: "/admin/kyb" },
+    { label: "系統通知", href: "/admin/notifications" },
+    { label: "廣播訊息", href: "/admin/broadcast" },
     { label: "票券驗證", href: "/verify" },
     { label: "NFT 票券", href: "/nft" },
+    { label: "設定", href: "/settings" },
   ],
   venue: [
     { label: "儀表板", href: "/dashboard" },
     { label: "數據分析", href: "/analytics" },
+    { label: "通知", href: "/notifications" },
     { label: "場館管理", href: "/venues" },
     { label: "演出活動", href: "/events" },
     { label: "演出申請", href: "/bookings" },
     { label: "票券驗證", href: "/verify" },
     { label: "訂單管理", href: "/orders" },
     { label: "商家驗證", href: "/kyb" },
+    { label: "設定", href: "/settings" },
   ],
   artist: [
     { label: "儀表板", href: "/dashboard" },
     { label: "瀏覽場館", href: "/venues" },
+    { label: "搜尋", href: "/search" },
+    { label: "通知", href: "/notifications" },
     { label: "即將演出", href: "/events" },
     { label: "我的申請", href: "/bookings" },
     { label: "我的訂單", href: "/orders" },
     { label: "我的票券", href: "/tickets" },
     { label: "NFT 票券", href: "/nft" },
+    { label: "設定", href: "/settings" },
   ],
 };
 
 const roleLabels: Record<string, string> = {
-  admin: "管理員",
-  venue: "場館",
-  artist: "樂團",
+  admin: "管理員", venue: "場館", artist: "樂團",
 };
 
 const roleColors: Record<string, string> = {
@@ -59,58 +64,59 @@ const roleColors: Record<string, string> = {
   artist: "bg-green-50 text-green-700",
 };
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [notifCount, setNotifCount] = useState(0);
+  const [notifDropdown, setNotifDropdown] = useState(false);
+  const [recentNotifs, setRecentNotifs] = useState<any[]>([]);
 
   useEffect(() => {
     const token = getToken();
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    api
-      .get<User>("/api/v1/me", token)
+    if (!token) { router.push("/login"); return; }
+    api.get<User>("/api/v1/me", token)
       .then(setUser)
-      .catch(() => {
-        removeToken();
-        router.push("/login");
-      })
+      .catch(() => { removeToken(); router.push("/login"); })
       .finally(() => setLoading(false));
   }, [router]);
 
   useEffect(() => {
     const token = getToken();
     if (!token || !user) return;
-    api.get<{count: number}>("/api/v1/notifications/unread", token)
-      .then((d) => setNotifCount(d.count))
-      .catch(() => {});
-    const interval = setInterval(() => {
+    const fetch = () => {
       api.get<{count: number}>("/api/v1/notifications/unread", token)
-        .then((d) => setNotifCount(d.count))
-        .catch(() => {});
-    }, 30000);
+        .then((d) => setNotifCount(d.count)).catch(() => {});
+    };
+    fetch();
+    const interval = setInterval(fetch, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
-  function handleLogout() {
-    removeToken();
-    router.push("/login");
-  }
+  useWebSocket({
+    broadcast: (data) => {
+      setNotifCount((c) => c + 1);
+      setRecentNotifs((prev) => [{ title: data.title, body: data.body, time: new Date() }, ...prev].slice(0, 5));
+    },
+    kyb_submitted: () => setNotifCount((c) => c + 1),
+    kyb_verified: () => setNotifCount((c) => c + 1),
+    kyb_rejected: () => setNotifCount((c) => c + 1),
+    booking_created: () => setNotifCount((c) => c + 1),
+    booking_approved: () => setNotifCount((c) => c + 1),
+    booking_rejected: () => setNotifCount((c) => c + 1),
+    booking_confirmed: () => setNotifCount((c) => c + 1),
+    booking_cancelled: () => setNotifCount((c) => c + 1),
+  });
 
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-gray-500">載入中...</p>
+        <div className="flex items-center gap-2">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <span className="text-sm text-gray-500">載入中...</span>
+        </div>
       </div>
     );
   }
@@ -156,14 +162,59 @@ export default function DashboardLayout({
             </ul>
           </nav>
           <div className="hidden items-center gap-2 border-t px-6 py-4 lg:flex lg:flex-col">
-            <div className="flex items-center gap-2 self-start">
-              <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${roleColors[user.role] || ""}`}>
-                {roleLabels[user.role] || user.role}
-              </span>
+            <div className="flex w-full items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${roleColors[user.role] || ""}`}>
+                  {roleLabels[user.role] || user.role}
+                </span>
+              </div>
+              <div className="relative">
+                <button
+                  onClick={() => setNotifDropdown(!notifDropdown)}
+                  className="relative rounded-full p-1 text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                  {notifCount > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 rounded-full bg-red-500 px-1 text-[10px] text-white">
+                      {notifCount}
+                    </span>
+                  )}
+                </button>
+                {notifDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setNotifDropdown(false)} />
+                    <div className="absolute right-0 z-20 mt-2 w-72 rounded-lg border bg-white shadow-lg">
+                      <div className="border-b px-4 py-2">
+                        <p className="text-sm font-medium text-gray-900">通知</p>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {recentNotifs.length === 0 && (
+                          <p className="px-4 py-3 text-sm text-gray-400">暫無新通知</p>
+                        )}
+                        {recentNotifs.map((n, i) => (
+                          <div key={i} className="border-b px-4 py-2 last:border-0">
+                            <p className="text-sm font-medium text-gray-900">{n.title}</p>
+                            {n.body && <p className="text-xs text-gray-600">{n.body}</p>}
+                          </div>
+                        ))}
+                      </div>
+                      <Link
+                        href="/notifications"
+                        className="block border-t px-4 py-2 text-center text-xs text-primary-600 hover:bg-gray-50"
+                        onClick={() => setNotifDropdown(false)}
+                      >
+                        查看全部
+                      </Link>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             <div className="flex w-full items-center justify-between">
               <span className="text-sm text-gray-600">{user.name}</span>
-              <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600">
+              <button onClick={() => { removeToken(); router.push("/login"); }} className="text-xs text-gray-400 hover:text-gray-600">
                 登出
               </button>
             </div>

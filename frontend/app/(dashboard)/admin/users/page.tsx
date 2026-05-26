@@ -2,20 +2,32 @@
 
 import { useEffect, useState } from "react";
 import { getToken, api } from "@/lib/api";
+import { Pagination } from "@/components/Pagination";
 
 interface User {
-  id: string; email: string; name: string; role: string;
-  created_at: string;
+  id: string; email: string; name: string; role: string; created_at: string;
 }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [total, setTotal] = useState(0);
+  const [limit, setLimit] = useState(50);
+  const [offset, setOffset] = useState(0);
 
-  function load() {
+  function load(newOffset?: number) {
     const token = getToken();
     if (!token) return;
-    api.get<User[]>("/api/v1/admin/users", token).then(setUsers).finally(() => setLoading(false));
+    const off = newOffset !== undefined ? newOffset : offset;
+    setLoading(true);
+    setError("");
+    api.get<{data: User[]; total: number; limit: number; offset: number}>(
+      `/api/v1/admin/users?limit=${limit}&offset=${off}`, token,
+    )
+      .then((r) => { setUsers(r.data); setTotal(r.total); setOffset(r.offset); })
+      .catch((e) => setError(e instanceof Error ? e.message : "載入失敗"))
+      .finally(() => setLoading(false));
   }
 
   useEffect(load, []);
@@ -31,7 +43,8 @@ export default function AdminUsersPage() {
     }
   }
 
-  if (loading) return <p className="text-gray-500">載入中...</p>;
+  if (loading) return <div className="flex min-h-[40vh] items-center justify-center"><div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" /></div>;
+  if (error) return <p className="text-red-500">{error}</p>;
 
   return (
     <div>
@@ -48,6 +61,9 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {users.length === 0 && (
+              <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-400">尚無使用者</td></tr>
+            )}
             {users.map((u) => (
               <tr key={u.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{u.name}</td>
@@ -75,6 +91,7 @@ export default function AdminUsersPage() {
           </tbody>
         </table>
       </div>
+      <Pagination total={total} limit={limit} offset={offset} onPage={(o) => load(o)} />
     </div>
   );
 }

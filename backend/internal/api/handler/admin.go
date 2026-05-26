@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +15,18 @@ type AdminHandler struct {
 
 func NewAdminHandler(pool *pgxpool.Pool) *AdminHandler {
 	return &AdminHandler{pool: pool}
+}
+
+func parsePagination(c *gin.Context) (limit, offset int) {
+	limit = 50
+	offset = 0
+	if l, err := strconv.Atoi(c.DefaultQuery("limit", "50")); err == nil && l > 0 && l <= 200 {
+		limit = l
+	}
+	if o, err := strconv.Atoi(c.DefaultQuery("offset", "0")); err == nil && o >= 0 {
+		offset = o
+	}
+	return
 }
 
 func GetAdminUserIDs(ctx context.Context, pool *pgxpool.Pool) []string {
@@ -102,8 +115,8 @@ func (h *AdminHandler) Broadcast(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message":  "broadcast sent",
-		"target":   req.Target,
+		"message":    "broadcast sent",
+		"target":     req.Target,
 		"recipients": sent,
 	})
 }
@@ -127,9 +140,10 @@ func (h *AdminHandler) Stats(c *gin.Context) {
 }
 
 func (h *AdminHandler) ListUsers(c *gin.Context) {
+	limit, offset := parsePagination(c)
 	rows, err := h.pool.Query(context.Background(),
 		`SELECT id, email, name, role, COALESCE(avatar_url,''), created_at, updated_at
-		 FROM users ORDER BY created_at DESC`)
+		 FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list users"})
 		return
@@ -151,7 +165,11 @@ func (h *AdminHandler) ListUsers(c *gin.Context) {
 	if list == nil {
 		list = []gin.H{}
 	}
-	c.JSON(http.StatusOK, list)
+
+	var total int32
+	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM users`).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{"data": list, "total": total, "limit": limit, "offset": offset})
 }
 
 func (h *AdminHandler) UpdateUserRole(c *gin.Context) {
@@ -173,12 +191,13 @@ func (h *AdminHandler) UpdateUserRole(c *gin.Context) {
 }
 
 func (h *AdminHandler) ListVenues(c *gin.Context) {
+	limit, offset := parsePagination(c)
 	rows, err := h.pool.Query(context.Background(),
 		`SELECT v.id, v.name, v.description, v.address, v.city, v.capacity,
 		        v.contact_phone, v.contact_email, v.owner_id, v.status, v.created_at, v.updated_at,
 		        COALESCE(u.name,'')
 		 FROM venues v LEFT JOIN users u ON v.owner_id = u.id
-		 ORDER BY v.created_at DESC`)
+		 ORDER BY v.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list venues"})
 		return
@@ -203,7 +222,11 @@ func (h *AdminHandler) ListVenues(c *gin.Context) {
 	if list == nil {
 		list = []gin.H{}
 	}
-	c.JSON(http.StatusOK, list)
+
+	var total int32
+	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM venues`).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{"data": list, "total": total, "limit": limit, "offset": offset})
 }
 
 func (h *AdminHandler) UpdateVenueStatus(c *gin.Context) {
@@ -225,13 +248,14 @@ func (h *AdminHandler) UpdateVenueStatus(c *gin.Context) {
 }
 
 func (h *AdminHandler) ListEvents(c *gin.Context) {
+	limit, offset := parsePagination(c)
 	rows, err := h.pool.Query(context.Background(),
 		`SELECT e.id, e.title, e.description, e.venue_id, e.artist_id, e.start_at, e.end_at, e.status,
 		        e.created_at, e.updated_at, COALESCE(v.name,''), COALESCE(u.name,'')
 		 FROM events e
 		 LEFT JOIN venues v ON e.venue_id = v.id
 		 LEFT JOIN users u ON e.artist_id = u.id
-		 ORDER BY e.created_at DESC`)
+		 ORDER BY e.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list events"})
 		return
@@ -256,10 +280,15 @@ func (h *AdminHandler) ListEvents(c *gin.Context) {
 	if list == nil {
 		list = []gin.H{}
 	}
-	c.JSON(http.StatusOK, list)
+
+	var total int32
+	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM events`).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{"data": list, "total": total, "limit": limit, "offset": offset})
 }
 
 func (h *AdminHandler) ListBookings(c *gin.Context) {
+	limit, offset := parsePagination(c)
 	rows, err := h.pool.Query(context.Background(),
 		`SELECT br.id, br.slot_id, br.venue_id, br.artist_id, br.message, br.status,
 		        br.created_at, br.updated_at,
@@ -267,7 +296,7 @@ func (h *AdminHandler) ListBookings(c *gin.Context) {
 		 FROM booking_requests br
 		 LEFT JOIN venues v ON br.venue_id = v.id
 		 LEFT JOIN users u ON br.artist_id = u.id
-		 ORDER BY br.created_at DESC`)
+		 ORDER BY br.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list bookings"})
 		return
@@ -291,10 +320,15 @@ func (h *AdminHandler) ListBookings(c *gin.Context) {
 	if list == nil {
 		list = []gin.H{}
 	}
-	c.JSON(http.StatusOK, list)
+
+	var total int32
+	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM booking_requests`).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{"data": list, "total": total, "limit": limit, "offset": offset})
 }
 
 func (h *AdminHandler) ListOrders(c *gin.Context) {
+	limit, offset := parsePagination(c)
 	rows, err := h.pool.Query(context.Background(),
 		`SELECT o.id, o.user_id, o.event_id, o.total_amount, o.status, COALESCE(o.payment_method,''),
 		        o.paid_at, o.created_at, o.updated_at,
@@ -302,7 +336,7 @@ func (h *AdminHandler) ListOrders(c *gin.Context) {
 		 FROM orders o
 		 LEFT JOIN events e ON o.event_id = e.id
 		 LEFT JOIN users u ON o.user_id = u.id
-		 ORDER BY o.created_at DESC`)
+		 ORDER BY o.created_at DESC LIMIT $1 OFFSET $2`, limit, offset)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list orders"})
 		return
@@ -328,5 +362,9 @@ func (h *AdminHandler) ListOrders(c *gin.Context) {
 	if list == nil {
 		list = []gin.H{}
 	}
-	c.JSON(http.StatusOK, list)
+
+	var total int32
+	h.pool.QueryRow(context.Background(), `SELECT COUNT(*) FROM orders`).Scan(&total)
+
+	c.JSON(http.StatusOK, gin.H{"data": list, "total": total, "limit": limit, "offset": offset})
 }
