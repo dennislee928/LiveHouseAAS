@@ -9,6 +9,7 @@ import (
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/config"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/cache"
 	"github.com/dennis-lee/LiveHouseAAS/backend/internal/infra/db"
+	"github.com/dennis-lee/LiveHouseAAS/backend/internal/payment"
 )
 
 func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine {
@@ -24,6 +25,9 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 	venueH := handler.NewVenueHandler(pg.Pool)
 	slotH := handler.NewSlotHandler(pg.Pool)
 	bookingH := handler.NewBookingHandler(pg.Pool)
+	eventH := handler.NewEventHandler(pg.Pool)
+	payRouter := payment.NewRouter()
+	ticketH := handler.NewTicketHandler(pg.Pool, payRouter)
 
 	router.GET("/health", handler.HealthCheck)
 
@@ -60,6 +64,9 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 				venues.POST("/:venueId/slots", slotH.Create)
 				venues.POST("/:venueId/slots/batch", slotH.BatchCreate)
 				venues.DELETE("/slots/:id", slotH.Delete)
+
+				// Events by venue
+				venues.GET("/:venueId/events", eventH.ListByVenue)
 			}
 
 			// --- Bookings ---
@@ -68,6 +75,27 @@ func NewRouter(cfg *config.Config, pg *db.Postgres, r *cache.Redis) *gin.Engine 
 			protected.GET("/venues/:venueId/bookings", bookingH.ListByVenue)
 			protected.POST("/bookings", bookingH.Create)
 			protected.PUT("/bookings/:id/status", bookingH.UpdateStatus)
+
+			// --- Events ---
+			events := protected.Group("/events")
+			{
+				events.GET("/published", eventH.ListPublished)
+				events.GET("/artist", eventH.ListByArtist)
+				events.GET("/:id", eventH.Get)
+				events.PUT("/:id", eventH.Update)
+				events.POST("/:id/publish", eventH.Publish)
+
+				// Ticket Types
+				events.GET("/:id/ticket-types", eventH.ListTicketTypes)
+				events.POST("/:id/ticket-types", eventH.CreateTicketType)
+
+				// Purchase
+				events.POST("/:id/purchase", ticketH.Purchase)
+			}
+
+			// --- Orders & Tickets ---
+			protected.GET("/orders", ticketH.ListOrders)
+			protected.GET("/tickets", ticketH.ListTickets)
 		}
 	}
 
