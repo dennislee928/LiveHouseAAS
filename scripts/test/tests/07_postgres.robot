@@ -10,9 +10,9 @@ Suite Teardown    Disconnect From Database
 
 *** Keywords ***
 Connect To AlwaysData Postgres
-    Connect To Database Using Custom Params
-    ...    psycopg2
-    ...    database='${DB_NAME}', user='${DB_USER}', password='${DB_PASSWORD}', host='${DB_HOST}', port=${DB_PORT}, connect_timeout=15, sslmode='require'
+    Connect To Database    psycopg2
+    ...    dbName=${DB_NAME}    dbUsername=${DB_USER}    dbPassword=${DB_PASSWORD}
+    ...    dbHost=${DB_HOST}    dbPort=${DB_PORT}
 
 *** Test Cases ***
 Database Connection Is Live

@@ -26,12 +26,15 @@ cd "$SCRIPT_DIR"
 
 # ── Dependency check ──────────────────────────────────────────────────────────
 echo "Installing / verifying Python dependencies..."
+pip3 install -q -r requirements.txt --break-system-packages 2>/dev/null || \
 pip3 install -q -r requirements.txt
 
 # ── Env-var validation ────────────────────────────────────────────────────────
 WARN=0
 if [[ -z "${CHOREO_API_KEY}" ]]; then
     echo "WARNING: CHOREO_API_KEY is not set — all backend API tests will return 401"
+    echo "         Get a fresh key (valid 10 min) from Choreo UI:"
+    echo "         Component → backend.prd → Test → copy the Security Header value"
     WARN=1
 fi
 if [[ -z "${POSTGRES_PASSWORD}" ]]; then
