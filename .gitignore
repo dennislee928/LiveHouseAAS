@@ -24,3 +24,5 @@ Thumbs.db
 # Docker
 docker-data/
 scripts/test/resources/common.resource
+/scripts/test/resources/__pycache__
+/scripts/test/results
