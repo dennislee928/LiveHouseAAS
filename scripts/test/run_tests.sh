@@ -1,55 +1,63 @@
 #!/usr/bin/env bash
-# Run the full LiveHouseAAS Robot Framework test suite
+# Run the LiveHouseAAS Robot Framework test suite
 #
 # Usage:
 #   ./run_tests.sh                   # all tests
-#   ./run_tests.sh --suite 07        # single suite (prefix match)
+#   ./run_tests.sh --suite 07        # single suite by prefix
 #   ./run_tests.sh --tag smoke       # filter by tag
-#   ./run_tests.sh --tag postgres    # only postgres tests
+#   ./run_tests.sh --tag backend
+#   ./run_tests.sh --tag postgres
 #
-# Required env vars:
-#   CHOREO_API_KEY     Choreo internal key (from component → Test → Security Header)
-#   POSTGRES_PASSWORD  AlwaysData PostgreSQL password
+# Set env vars BEFORE running (use single quotes to avoid zsh special chars):
+#   export CHOREO_API_KEY='eyJraWQi...'    # fresh key from Choreo UI (10 min TTL)
+#   export POSTGRES_PASSWORD='your_pass'   # single quotes handle ! $ etc safely
 #
-# Optional env vars (leave unset to skip direct component tests):
-#   NATS_MONITOR_URL   http://<host>:8222
-#   MINIO_URL          http://<host>:9000
-#   MINIO_ACCESS_KEY   MinIO root user   (default: minioadmin)
-#   MINIO_SECRET_KEY   MinIO root secret (default: minioadmin)
-#   REDIS_HOST         Redis hostname
-#   REDIS_PORT         Redis port        (default: 6379)
-#   REDIS_PASSWORD     Redis password    (if set)
+# Optional (direct component tests):
+#   export NATS_MONITOR_URL='http://<host>:8222'
+#   export MINIO_URL='http://<host>:9000'
+#   export MINIO_ACCESS_KEY='minioadmin'
+#   export MINIO_SECRET_KEY='minioadmin'
+#   export REDIS_HOST='<host>'
+#   export REDIS_PORT='6379'
+#   export REDIS_PASSWORD='<pass>'
 
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# ── Dependency check ──────────────────────────────────────────────────────────
-echo "Installing / verifying Python dependencies..."
-pip3 install -q -r requirements.txt --break-system-packages 2>/dev/null || \
-pip3 install -q -r requirements.txt
+VENV_DIR="$SCRIPT_DIR/.venv"
+
+# ── Virtual environment setup ─────────────────────────────────────────────────
+if [[ ! -d "$VENV_DIR" ]]; then
+    echo "Creating Python virtual environment at $VENV_DIR ..."
+    python3 -m venv "$VENV_DIR"
+fi
+
+source "$VENV_DIR/bin/activate"
+
+echo "Installing / verifying dependencies in venv..."
+pip install -q -r requirements.txt
 
 # ── Env-var validation ────────────────────────────────────────────────────────
 WARN=0
 if [[ -z "${CHOREO_API_KEY}" ]]; then
+    echo ""
     echo "WARNING: CHOREO_API_KEY is not set — all backend API tests will return 401"
-    echo "         Get a fresh key (valid 10 min) from Choreo UI:"
-    echo "         Component → backend.prd → Test → copy the Security Header value"
+    echo "         The key expires 10 minutes after generation. Get a fresh one from:"
+    echo "         Choreo UI → backend.prd → Test tab → copy 'Security Header' value"
+    echo "         Then: export CHOREO_API_KEY='eyJraWQi...'  (use single quotes!)"
     WARN=1
 fi
 if [[ -z "${POSTGRES_PASSWORD}" ]]; then
+    echo ""
     echo "WARNING: POSTGRES_PASSWORD is not set — PostgreSQL tests will fail"
+    echo "         Use single quotes: export POSTGRES_PASSWORD='Popoman1217\!1996'"
+    echo "         Or escape the !:   export POSTGRES_PASSWORD=Popoman1217\!1996"
     WARN=1
 fi
-if [[ -z "${NATS_MONITOR_URL}" ]]; then
-    echo "INFO:    NATS_MONITOR_URL not set — NATS tests will use localhost:8222 (likely fail)"
-fi
-if [[ -z "${MINIO_URL}" ]]; then
-    echo "INFO:    MINIO_URL not set — MinIO tests will use localhost:9000 (likely fail)"
-fi
-if [[ -z "${REDIS_HOST}" ]]; then
-    echo "INFO:    REDIS_HOST not set — Redis tests will use localhost (likely fail)"
-fi
+[[ -z "${NATS_MONITOR_URL}" ]] && echo "INFO:    NATS_MONITOR_URL not set — NATS tests will fail (expected if not exposed)"
+[[ -z "${MINIO_URL}" ]]        && echo "INFO:    MINIO_URL not set — MinIO tests will fail (expected if not exposed)"
+[[ -z "${REDIS_HOST}" ]]       && echo "INFO:    REDIS_HOST not set — Redis tests will fail (expected if not exposed)"
 [[ $WARN -eq 1 ]] && echo ""
 
 # ── Robot arguments ───────────────────────────────────────────────────────────
@@ -78,5 +86,4 @@ python3 -m robot "${ROBOT_ARGS[@]}" tests/ || true
 
 echo ""
 echo "────────────────────────────────────────"
-echo "Results written to: $SCRIPT_DIR/results/"
-echo "  Open: $SCRIPT_DIR/results/report.html"
+echo "Results: open $SCRIPT_DIR/results/report.html"

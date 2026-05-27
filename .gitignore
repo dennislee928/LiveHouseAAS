@@ -26,3 +26,4 @@ docker-data/
 scripts/test/resources/common.resource
 /scripts/test/resources/__pycache__
 /scripts/test/results
+scripts/test/.venv/
