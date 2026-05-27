@@ -7,6 +7,7 @@ Library    OperatingSystem
 *** Variables ***
 # --- Backend API (Choreo) ---
 ${API_BASE_URL}         https://960b78ad-4106-4b00-a989-39ae3209f7d4-dev.e1-us-east-azure.choreoapis.dev/default/backend-ky/v1.0
+${API_KEY_HEADER}       %{CHOREO_API_KEY_HEADER=api-key}
 ${API_KEY}              %{CHOREO_API_KEY=}
 
 # --- PostgreSQL (AlwaysData) ---
@@ -36,17 +37,14 @@ API Headers
     ${headers}=    Create Dictionary
     ...    Content-Type=application/json
     ...    Accept=application/json
-    ...    API-Key=${API_KEY}
+    Run Keyword If    '${API_KEY}' != ''    Set To Dictionary    ${headers}    ${API_KEY_HEADER}    ${API_KEY}
     RETURN    ${headers}
 
 Authenticated Headers
     [Arguments]    ${token}
     [Documentation]    Return headers with both Choreo API-Key and user JWT
-    ${headers}=    Create Dictionary
-    ...    Content-Type=application/json
-    ...    Accept=application/json
-    ...    API-Key=${API_KEY}
-    ...    Authorization=Bearer ${token}
+    ${headers}=    API Headers
+    Set To Dictionary    ${headers}    Authorization    Bearer ${token}
     RETURN    ${headers}
 
 Create API Session
