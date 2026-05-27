@@ -2,7 +2,7 @@
 Documentation     NATS component tests via HTTP monitoring API (port 8222)
 ...               Set NATS_MONITOR_URL env var to the exposed monitoring endpoint.
 Resource          ../resources/common.resource
-Library           ../resources/CustomLibrary.py
+Library           CustomLibrary
 
 *** Test Cases ***
 NATS Health Endpoint Responds

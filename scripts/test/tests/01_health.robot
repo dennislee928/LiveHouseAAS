@@ -1,6 +1,8 @@
 *** Settings ***
 Documentation     Smoke test — verify all 4 Choreo components respond
 Resource          ../resources/common.resource
+Library           CustomLibrary
+Library           DatabaseLibrary
 Suite Setup       Create API Session
 
 *** Test Cases ***

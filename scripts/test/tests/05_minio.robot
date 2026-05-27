@@ -2,7 +2,7 @@
 Documentation     MinIO component tests — HTTP health + S3 API round-trip
 ...               Set MINIO_URL, MINIO_ACCESS_KEY, MINIO_SECRET_KEY env vars.
 Resource          ../resources/common.resource
-Library           ../resources/CustomLibrary.py
+Library           CustomLibrary
 Suite Setup       Run Keywords    Create Session    minio    ${MINIO_URL}    verify=False
 ...               AND    Connect To MinIO    ${MINIO_URL}    ${MINIO_ACCESS_KEY}    ${MINIO_SECRET_KEY}
 Suite Teardown    MinIO Delete Object    robot-test-bucket    robot-test-object.txt

@@ -2,7 +2,7 @@
 Documentation     Redis component tests — PING, SET/GET, TTL, data type round-trips
 ...               Set REDIS_HOST, REDIS_PORT, REDIS_PASSWORD env vars.
 Resource          ../resources/common.resource
-Library           ../resources/CustomLibrary.py
+Library           CustomLibrary
 Suite Setup       Connect To Redis    ${REDIS_HOST}    ${REDIS_PORT}    ${REDIS_PASSWORD}
 Suite Teardown    Disconnect From Redis
 
