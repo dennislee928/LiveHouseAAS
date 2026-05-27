@@ -23,3 +23,4 @@ Thumbs.db
 
 # Docker
 docker-data/
+scripts/test/resources/common.resource
