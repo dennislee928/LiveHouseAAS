@@ -1,0 +1,7 @@
+robotframework==7.2
+robotframework-requests==0.9.7
+robotframework-databaselibrary==1.4.4
+psycopg2-binary==2.9.10
+redis==5.2.1
+nats-py==2.9.0
+boto3==1.38.0
