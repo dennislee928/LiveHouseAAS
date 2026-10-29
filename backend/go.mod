@@ -1,17 +1,17 @@
 module github.com/dennis-lee/LiveHouseAAS/backend
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/jackc/pgx/v5 v5.9.2
 	github.com/joho/godotenv v1.5.1
-	github.com/redis/go-redis/v9 v9.5.3
-	golang.org/x/crypto v0.31.0
+	github.com/redis/go-redis/v9 v9.5.5
+	golang.org/x/crypto v0.51.0
 )
 
 require (
@@ -44,10 +44,10 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
